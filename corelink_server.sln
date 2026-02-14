@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Corelink.Presentation", "Corelink.Presentation\Corelink.Presentation.csproj", "{84D8CC27-5585-4488-A419-EABC37F4D942}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Corelink.Application", "Corelink.Application\Corelink.Application.csproj", "{B1668908-3D34-4DBE-997F-A83BB5869E7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Corelink.Domain", "Corelink.Domain\Corelink.Domain.csproj", "{2839FD52-0AAA-41E8-BBC6-0BD65587610D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Corelink.Infrastructure", "Corelink.Infrastructure\Corelink.Infrastructure.csproj", "{DFB61393-CE34-46C7-BCDA-54BDF29AEC58}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{84D8CC27-5585-4488-A419-EABC37F4D942}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84D8CC27-5585-4488-A419-EABC37F4D942}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84D8CC27-5585-4488-A419-EABC37F4D942}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84D8CC27-5585-4488-A419-EABC37F4D942}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1668908-3D34-4DBE-997F-A83BB5869E7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1668908-3D34-4DBE-997F-A83BB5869E7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1668908-3D34-4DBE-997F-A83BB5869E7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1668908-3D34-4DBE-997F-A83BB5869E7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2839FD52-0AAA-41E8-BBC6-0BD65587610D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2839FD52-0AAA-41E8-BBC6-0BD65587610D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2839FD52-0AAA-41E8-BBC6-0BD65587610D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2839FD52-0AAA-41E8-BBC6-0BD65587610D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFB61393-CE34-46C7-BCDA-54BDF29AEC58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFB61393-CE34-46C7-BCDA-54BDF29AEC58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFB61393-CE34-46C7-BCDA-54BDF29AEC58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFB61393-CE34-46C7-BCDA-54BDF29AEC58}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

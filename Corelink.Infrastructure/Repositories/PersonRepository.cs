@@ -1,5 +1,6 @@
 using Corelink.Application.Interface.Persistence;
 using Corelink.Domain.Entities;
+using Corelink.Domain.Enums;
 using Corelink.Infrastructure.Persistence.Interface;
 using Dapper;
 
@@ -69,7 +70,7 @@ public sealed class PersonRepository(IDbConnectionFactory connectionFactory) : I
             person.PhoneNumber,
             person.Address,
             person.LocationId,
-            person.Status
+            Status = person.Status.ToDb()
         };
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();

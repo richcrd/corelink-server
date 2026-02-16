@@ -5,10 +5,18 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>corelink_server</RootNamespace>
+        <UserSecretsId>corelink_server</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2"/>
+        <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Corelink.Application\Corelink.Application.csproj" />
+      <ProjectReference Include="..\Corelink.Domain\Corelink.Domain.csproj" />
+            <ProjectReference Include="..\Corelink.Infrastructure\Corelink.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

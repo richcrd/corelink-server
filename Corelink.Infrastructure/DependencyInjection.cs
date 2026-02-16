@@ -37,6 +37,7 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped<IPersonRepository, PersonRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
         return services;
     }

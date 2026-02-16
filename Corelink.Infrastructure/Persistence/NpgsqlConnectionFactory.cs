@@ -9,10 +9,10 @@ public sealed class NpgsqlConnectionFactory(IOptions<PostgresOptions> options) :
 {
     private readonly PostgresOptions _options = options.Value;
 
-    public async Task<DbConnection> CreateOpenConnectionAsync(CancellationToken cancellationToken = default)
+    public async Task<DbConnection> CreateOpenConnectionAsync()
     {
         var connection = new NpgsqlConnection(_options.ConnectionString);
-        await connection.OpenAsync(cancellationToken);
+        await connection.OpenAsync();
         return connection;
     }
 }

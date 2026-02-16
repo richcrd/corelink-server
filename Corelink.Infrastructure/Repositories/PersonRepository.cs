@@ -7,7 +7,7 @@ namespace Corelink.Infrastructure.Repositories;
 
 public sealed class PersonRepository(IDbConnectionFactory connectionFactory) : IPersonRepository
 {
-    public async Task<Person?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Person?> GetByIdAsync(Guid id)
     {
         const string sql = """
             SELECT
@@ -25,12 +25,11 @@ public sealed class PersonRepository(IDbConnectionFactory connectionFactory) : I
             LIMIT 1;
             """;
 
-        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        return await connection.QuerySingleOrDefaultAsync<Person>(
-            new CommandDefinition(sql, new { Id = id }, cancellationToken: cancellationToken));
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.QuerySingleOrDefaultAsync<Person>(sql, new { Id = id });
     }
 
-    public async Task<Person?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Person?> GetByEmailAsync(string email)
     {
         const string sql = """
             SELECT
@@ -48,12 +47,11 @@ public sealed class PersonRepository(IDbConnectionFactory connectionFactory) : I
             LIMIT 1;
             """;
 
-        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        return await connection.QuerySingleOrDefaultAsync<Person>(
-            new CommandDefinition(sql, new { Email = email }, cancellationToken: cancellationToken));
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.QuerySingleOrDefaultAsync<Person>(sql, new { Email = email });
     }
 
-    public async Task<Guid> CreateAsync(Person person, CancellationToken cancellationToken = default)
+    public async Task<Guid> CreateAsync(Person person)
     {
         const string sql = """
             INSERT INTO person
@@ -74,8 +72,7 @@ public sealed class PersonRepository(IDbConnectionFactory connectionFactory) : I
             person.Status
         };
 
-        await using var connection = await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        return await connection.ExecuteScalarAsync<Guid>(
-            new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<Guid>(sql, parameters);
     }
 }

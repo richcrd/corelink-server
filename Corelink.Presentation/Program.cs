@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
+using Corelink.Domain.Entities;
 
 {
     var root = Directory.GetCurrentDirectory();
@@ -39,6 +40,12 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(
             new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
     });
+
+builder.Services
+    .AddOptions<SupabaseOptions>()
+    .Bind(builder.Configuration.GetSection("Supabase"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddOptions<AuthOptions>()
     .Bind(builder.Configuration.GetSection(AuthOptions.SectionName))

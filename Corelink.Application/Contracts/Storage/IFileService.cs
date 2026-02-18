@@ -1,6 +1,6 @@
 namespace Corelink.Application.Contracts.Storage;
 
-public class IFileService
+public interface IFileService
 {
-    
+    Task<string> UploadAsync(Stream fileStream, string fileName, string contentType);
 }

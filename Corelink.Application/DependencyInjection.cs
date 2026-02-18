@@ -10,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<UploadImageHandler>();
         return services;
     }
 }

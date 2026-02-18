@@ -3,6 +3,9 @@ using Corelink.Application.Interface.Persistence;
 using Corelink.Infrastructure.Persistence.Interface;
 using Corelink.Infrastructure.Persistence.Dapper;
 using Corelink.Infrastructure.Repositories;
+using Corelink.Application.Abstractions.Security;
+using Corelink.Application.Contracts.Auth;
+using Corelink.Infrastructure.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Dapper;
@@ -36,8 +39,20 @@ public static class DependencyInjection
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
 
         // Repositories
-        services.AddScoped<IPersonRepository, PersonRepository>();
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<IAuthRepository, AuthRepository>();
+
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.SecretKey), "Jwt:SecretKey is required")
+            .Validate(o => o.AccessTokenMinutes > 0, "Jwt:AccessTokenMinutes must be > 0")
+            .Validate(o => o.RefreshTokenDays > 0, "Jwt:RefreshTokenDays must be > 0")
+            .ValidateOnStart();
+
+        services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
+        services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
+        services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
 
         return services;
     }

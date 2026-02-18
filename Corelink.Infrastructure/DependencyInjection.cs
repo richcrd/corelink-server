@@ -10,6 +10,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Dapper;
 using System.Threading;
+using Corelink.Application.Contracts.Storage;
+using Corelink.Infrastructure.Storage;
 
 namespace Corelink.Infrastructure;
 
@@ -53,6 +55,7 @@ public static class DependencyInjection
         services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddHttpClient<IFileService, SupabaseService>();
 
         return services;
     }

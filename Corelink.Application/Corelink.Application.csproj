@@ -12,4 +12,8 @@
       <ProjectReference Include="..\Corelink.Domain\Corelink.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Contracts\Locations\" />
+    </ItemGroup>
+
 </Project>

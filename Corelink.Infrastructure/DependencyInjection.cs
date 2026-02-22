@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
         services.AddScoped<ILocationRepository, LocationRepository>();
         services.AddScoped<IAuthRepository, AuthRepository>();
+        services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

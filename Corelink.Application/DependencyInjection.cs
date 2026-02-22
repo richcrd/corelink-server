@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<UploadImageHandler>();
+        services.AddScoped<IProductCategoryService, ProductCategoryService>();
         return services;
     }
 }

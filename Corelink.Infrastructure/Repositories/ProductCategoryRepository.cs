@@ -1,3 +1,4 @@
+using Corelink.Application.Contracts.ProductCategory;
 using Corelink.Application.Interface.Persistence;
 using Corelink.Domain.Entities;
 using Corelink.Domain.Enums;
@@ -42,19 +43,64 @@ public sealed class ProductCategoryRepository(IDbConnectionFactory connectionFac
         return await connection.QueryFirstOrDefaultAsync<ProductCategory>(sql, new { Id = id });
     }
 
-    public async Task<IReadOnlyList<ProductCategory>> GetAllAsync()
+    public async Task<IReadOnlyList<ProductCategoryListResponse>> GetAllAsync()
     {
         const string sql = """
-                           SELECT
-                               pc.id,
-                               pc.name AS Name,
-                               pc.description AS Description,
-                               pc.status as Status
-                           FROM product_category pc
-                           ORDER BY pc.name;
+                               SELECT 
+                                   pc.id,
+                                   pc.name,
+                                   pc.description,
+                                   img.url as ImageUrl
+                               FROM product_category pc
+                               LEFT JOIN product_category_image pci 
+                                   ON pci.category_id = pc.id 
+                                   AND pci.is_main = true
+                               LEFT JOIN image img 
+                                   ON img.id = pci.image_id
+                               ORDER BY pc.name;
                            """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        var result = await connection.QueryAsync<ProductCategory>(sql);
+        var result = await connection.QueryAsync<ProductCategoryListResponse>(sql);
         return result.ToList();
+    }
+
+    public async Task AddImageAsync(Guid categoryId, string imageUrl)
+    {
+        const string insertImageSql = """
+                                          INSERT INTO image (url)
+                                          VALUES (@Url)
+                                          RETURNING id;
+                                      """;
+
+        const string relationSql = """
+                                       INSERT INTO product_category_image
+                                           (category_id, image_id, is_main)
+                                       VALUES (@CategoryId, @ImageId, true);
+                                   """;
+
+        await using var connection =
+            await connectionFactory.CreateOpenConnectionAsync();
+
+        using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            var imageId = await connection.ExecuteScalarAsync<Guid>(
+                insertImageSql,
+                new { Url = imageUrl },
+                transaction);
+
+            await connection.ExecuteAsync(
+                relationSql,
+                new { CategoryId = categoryId, ImageId = imageId },
+                transaction);
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 }

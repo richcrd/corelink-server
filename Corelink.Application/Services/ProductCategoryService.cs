@@ -2,34 +2,64 @@ using Corelink.Application.Abstractions.Services;
 using Corelink.Application.Common;
 using Corelink.Application.Contracts;
 using Corelink.Application.Contracts.ProductCategory;
+using Corelink.Application.Contracts.Storage;
 using Corelink.Application.Interface.Persistence;
 using Corelink.Application.Mapper;
+using Corelink.Domain.Entities;
 using Microsoft.VisualBasic.CompilerServices;
 
 namespace Corelink.Application.Services;
 
-public class ProductCategoryService(IProductCategoryRepository repository) : IProductCategoryService
+public class ProductCategoryService(
+    IProductCategoryRepository repository, 
+    IFileService fileService) 
+    : IProductCategoryService
 {
+    private readonly IProductCategoryRepository _repository = repository;
+    private readonly IFileService _fileService = fileService;
     private static string NormalizeName(string name) => Validation.Trim(name);
     
-    public async Task<Answer<ProductCategoryResponse>> CreateAsync(CreateProductCategoryRequest dto)
+    public async Task<Answer<ProductCategoryResponse>> CreateAsync(CreateProductCategoryRequest command)
     {
         var error = Validation.FirstError(
-            Validation.Required<ProductCategoryResponse>(dto.Name, nameof(dto.Name))
+            Validation.Required<ProductCategoryResponse>(command.Name, nameof(command.Name))
         );
 
         if (error is not null) return error;
 
-        var name = NormalizeName(dto.Name);
+        string? imageUrl = null;
+        try
+        {
+            imageUrl = await fileService.UploadAsync(
+                command.ImageStream,
+                command.FileName,
+                command.ContentType);
+            
+            var entity = new ProductCategory()
+            {
+                Name = Validation.Trim(command.Name),
+                Description = command.Description
+            };
+            
+            var id = await _repository.CreateAsync(entity);
+            await _repository.AddImageAsync(id, imageUrl);
+            
+            return Answer<ProductCategoryResponse>.Ok(
+                new ProductCategoryResponse(
+                    id,
+                    entity.Name,
+                    entity.Description
+                ));
+        }
+        catch
+        {
+            if (imageUrl is not null)
+            {
+                await _fileService.DeleteAsync(imageUrl);
+            }
 
-        var entity = ProductCategoryMapper.ToEntity(dto);
-        entity.Name = name;
-        
-        await repository.CreateAsync(entity);
-        
-        var response = ProductCategoryMapper.ToResponse(entity);
-        return Answer<ProductCategoryResponse>.Ok(response);
-
+            throw;
+        }
     }
 
     public async Task<Answer<ProductCategoryResponse?>> GetByIdAsync(Guid id)
@@ -39,23 +69,15 @@ public class ProductCategoryService(IProductCategoryRepository repository) : IPr
             return Answer<ProductCategoryResponse?>.BadRequest("Id is required");
         }
 
-        var productCategory = await repository.GetById(id);
+        var productCategory = await _repository.GetById(id);
         return productCategory is null
             ? Answer<ProductCategoryResponse?>.NotFound("Product Category not found")
             : Answer<ProductCategoryResponse?>.Ok(ProductCategoryMapper.ToResponse(productCategory));
     }
 
-    public async Task<Answer<IReadOnlyList<ProductCategoryResponse>>> GetAllAsync()
+    public async Task<Answer<IReadOnlyList<ProductCategoryListResponse>>> GetAllAsync()
     {
-        var entities = await repository.GetAllAsync();
-        
-        if (entities.Count == 0)
-            return Answer<IReadOnlyList<ProductCategoryResponse>>.Ok([]);
-
-        var response = entities
-            .Select(ProductCategoryMapper.ToResponse)
-            .ToList();
-            
-        return Answer<IReadOnlyList<ProductCategoryResponse>>.Ok(response);
+        var response = await _repository.GetAllAsync();
+        return Answer<IReadOnlyList<ProductCategoryListResponse>>.Ok(response);
     }
 }

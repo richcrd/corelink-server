@@ -64,6 +64,73 @@ public sealed class ProductCategoryRepository(IDbConnectionFactory connectionFac
         return result.ToList();
     }
 
+    public async Task<bool> UpdateAsync(ProductCategory productCategory)
+    {
+        const string sql = """
+                           UPDATE product_category
+                           SET name = @Name,
+                               description = @Description,
+                               status = @Status::status_enum
+                           WHERE id = @Id;
+                           """;
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        var rows = await connection.ExecuteAsync(sql, new
+        {
+            productCategory.Id,
+            productCategory.Name,
+            productCategory.Description,
+            Status = productCategory.Status.ToDb()
+        });
+        return rows > 0;
+    }
+
+    public async Task UpdateImageAsync(Guid categoryId, Guid imageId)
+    {
+        const string removeMain = """
+                                  UPDATE product_category_image
+                                  SET is_main = false
+                                  WHERE category_id = @CategoryId;
+                                  """;
+        const string setMain = """
+                               INSERT INTO product_category_image
+                               (category_id, image_id, is_main)
+                               VALUES (@CategoryId, @ImageId, true);
+                               """;
+
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+
+        await using var transaction = connection.BeginTransaction();
+
+        await connection.ExecuteAsync(removeMain, new { CategoryId = categoryId }, transaction);
+        await connection.ExecuteAsync(setMain, new { CategoryId = categoryId, ImageId = imageId }, transaction);
+        transaction.Commit();
+    }
+
+    public async Task<string?> GetMainImageUrlAsync(Guid categoryId)
+    {
+        const string sql = """
+                           SELECT img.url
+                           FROM product_category_image pci
+                           INNER JOIN image img ON img.id = pci.image_id
+                           WHERE pci.category_id = @CategoryId
+                                AND pci.is_main = true
+                           LIMIT 1;
+                           """;
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.QueryFirstOrDefaultAsync<string>(sql, new { CategoryId = categoryId });
+    }
+
+    public async Task<Guid> CreateImageAsync(string url)
+    {
+        const string sql = """
+                           INSERT INTO image (url)
+                           VALUES (@Url)
+                           RETURNING id;
+                           """;
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.ExecuteScalarAsync<Guid>(sql, new { Url = url });
+    }
+
     public async Task AddImageAsync(Guid categoryId, string imageUrl)
     {
         const string insertImageSql = """
@@ -81,7 +148,7 @@ public sealed class ProductCategoryRepository(IDbConnectionFactory connectionFac
         await using var connection =
             await connectionFactory.CreateOpenConnectionAsync();
 
-        using var transaction = connection.BeginTransaction();
+        await using var transaction = connection.BeginTransaction();
 
         try
         {

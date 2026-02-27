@@ -27,7 +27,7 @@ public class SupabaseService : IFileService
 
         var request = new HttpRequestMessage(
             HttpMethod.Post,
-            $"{_baseUrl}/storage/v1/object/corelink-images/{safeFileName}");
+            $"{_baseUrl}/storage/v1/object/{_bucket}/{safeFileName}");
 
         request.Headers.Add("Authorization", $"Bearer {_serviceKey}");
         request.Headers.Add("apikey", _serviceKey);
@@ -43,7 +43,7 @@ public class SupabaseService : IFileService
         if (!response.IsSuccessStatusCode)
             throw new Exception($"Supabase error: {errorBody}");
 
-        return $"{_baseUrl}/storage/v1/object/public/corelink-images/{safeFileName}";
+        return $"{_baseUrl}/storage/v1/object/public/{_bucket}/{safeFileName}";
     }
     
     public async Task DeleteAsync(string publicUrl)

@@ -9,4 +9,8 @@ public interface IProductCategoryRepository
     Task<ProductCategory?> GetById(Guid id);
     Task<IReadOnlyList<ProductCategoryListResponse>> GetAllAsync();
     Task AddImageAsync(Guid categoryId, string imageUrl);
+    Task<bool> UpdateAsync(ProductCategory productCategory);
+    Task UpdateImageAsync(Guid categoryId, Guid imageId);
+    Task<string?> GetMainImageUrlAsync(Guid categoryId);
+    Task<Guid> CreateImageAsync(string url);
 }

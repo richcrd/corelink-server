@@ -80,4 +80,70 @@ public class ProductCategoryService(
         var response = await _repository.GetAllAsync();
         return Answer<IReadOnlyList<ProductCategoryListResponse>>.Ok(response);
     }
+
+    public async Task<Answer<ProductCategoryResponse>> UpdateAsync(Guid id, PatchProductCategoryRequest command)
+    {
+        if (id == Guid.Empty)
+            return Answer<ProductCategoryResponse>.BadRequest("Id is required");
+
+        var entity = await _repository.GetById(id);
+        
+        if (entity is null)
+            return Answer<ProductCategoryResponse>.NotFound("Product Category not found");
+        
+        if (command.Name is null && command.Description is null)
+            return Answer<ProductCategoryResponse>
+                .BadRequest("At least one field must be provided");
+
+        if (command.Name is not null)
+            entity.Name = Validation.Trim(command.Name);
+        if (command.Description is not null)
+            entity.Description = command.Description;
+
+        var updated = await _repository.UpdateAsync(entity);
+
+        return !updated 
+            ? Answer<ProductCategoryResponse>.Error("Update failed") 
+            : Answer<ProductCategoryResponse>.Ok(ProductCategoryMapper.ToResponse(entity));
+    }
+
+    public async Task<Answer<string>> UpdateImageAsync(Guid categoryId, Stream imageStream, string fileName, string contentType)
+    {
+        if (categoryId == Guid.Empty)
+            return Answer<string>.BadRequest("Id is required");
+
+        var category = await _repository.GetById(categoryId);
+        
+        if (category is null)
+            return Answer<string>.NotFound("Product category not found");
+        
+        string? oldImageUrl = null;
+        string? newImageUrl = null;
+        try
+        {
+            oldImageUrl = await _repository.GetMainImageUrlAsync(categoryId);
+
+            newImageUrl = await _fileService.UploadAsync(imageStream, fileName, contentType);
+
+            var imageId = await _repository.CreateImageAsync(newImageUrl);
+            await _repository.UpdateImageAsync(categoryId, imageId);
+
+            if (oldImageUrl is not null)
+            {
+                await _fileService.DeleteAsync(oldImageUrl);
+            }
+
+            return Answer<string>.Ok(newImageUrl);
+        }
+        catch
+        {
+            if (newImageUrl is not null)
+            {
+                await _fileService.DeleteAsync(newImageUrl);
+            }
+
+            throw;
+        }
+    }
+    
 }

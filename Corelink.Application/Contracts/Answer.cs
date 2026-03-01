@@ -1,17 +1,11 @@
 namespace Corelink.Application.Contracts;
 
-public class Answer<T>
+public class Answer<T> : AnswerBase
 {
-    public bool Success { get; init; }
-    public int StatusCode { get; init; }
-    public string Message { get; init; }
     public T? Response { get; init; }
 
-    private Answer(bool success, int statusCode, string message, T? response)
+    private Answer(bool success, int statusCode, string message, T? response) : base(success, statusCode, message)
     {
-        Success = success;
-        StatusCode = statusCode;
-        Message = message;
         Response = response;
     }
 

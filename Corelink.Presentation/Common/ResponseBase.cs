@@ -7,4 +7,7 @@ public abstract class ResponseBase : ControllerBase
 {
     protected ActionResult HandleResponse<T>(Answer<T> answer)
         => StatusCode(answer.StatusCode, answer);
+
+    protected ActionResult HandleResponse(AnswerBase answer)
+        => StatusCode(answer.StatusCode, answer);
 }

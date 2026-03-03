@@ -18,6 +18,9 @@ public sealed class ProductController(
     [HttpPost("{id:guid}/image")]
     public async Task<IActionResult> UploadImage(Guid id, IFormFile file)
     {
+        if (file is null)
+            return BadRequest("File is required");
+        
         using var stream = file.OpenReadStream();
 
         var url = await handler.HandleAsync(
@@ -25,7 +28,16 @@ public sealed class ProductController(
             file.FileName,
             file.ContentType);
 
-        return Ok(new { ImageUrl = url });
+        var result = await _service.AddImageAsync(id, url);
+
+        return HandleResponse(result);
+    }
+
+    [HttpGet("{id:guid}/image")]
+    public async Task<IActionResult> GetMainImage(Guid id)
+    {
+        var result = await _service.GetMainImageUrlAsync(id);
+        return HandleResponse(result);
     }
 
     [HttpGet("branch/{branchId:guid}")]

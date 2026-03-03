@@ -7,9 +7,12 @@ public class ProductImage : BaseEntity
     public string Url { get; set; }
     public bool IsMain { get; private set; }
     public int Position { get; private set; }
+    
+    private ProductImage() { }
 
-    public ProductImage(string url, bool isMain, int position)
+    public ProductImage(Guid id, string url, bool isMain, int position)
     {
+        Id = id;
         Url = url;
         IsMain = isMain;
         Position = position;

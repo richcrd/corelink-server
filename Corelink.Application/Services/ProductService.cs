@@ -111,4 +111,31 @@ public class ProductService(IProductRepository repository) : IProductService
             ? AnswerBase.Error("Could not create offer")
             : AnswerBase.Ok();
     }
+
+    public async Task<AnswerBase> AddImageAsync(Guid productId, string imageUrl)
+    {
+        if (productId == Guid.Empty)
+            return AnswerBase.BadRequest("Product id is required");
+        
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return AnswerBase.BadRequest("Image is required");
+        
+        var product = await _repository.GetByIdAsync(productId);
+        
+        if (product is null)
+            return AnswerBase.NotFound("Product not found");
+
+        await _repository.AddImageAsync(productId, imageUrl);
+        
+        return AnswerBase.Ok();
+    }
+
+    public async Task<Answer<string?>> GetMainImageUrlAsync(Guid productId)
+    {
+        if (productId == Guid.Empty)
+            return Answer<string?>.BadRequest("ProductId is required");
+
+        var url = await _repository.GetMainImageUrlAsync(productId);
+        return Answer<string?>.Ok(url);
+    }
 }

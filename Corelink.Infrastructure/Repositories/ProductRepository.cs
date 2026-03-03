@@ -173,11 +173,73 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         var rows = await connection.ExecuteAsync(sql, new
         {
             ProductBranchId = productBranchId,
-            offerPrice = offerPrice,
+            OfferPrice = offerPrice,
             StartDate = startDate,
             EndDate = endDate
         });
 
         return rows > 0;
+    }
+
+    public async Task AddImageAsync(Guid productId, string imageUrl)
+    {
+        const string insertImageSql = """
+                                      INSERT INTO image (url)
+                                      VALUES (@Url)
+                                      RETURNING id;
+                                      """;
+        const string removeMainSql = """
+                                     UPDATE product_image
+                                     SET is_main = false
+                                     WHERE product_id = @ProductId
+                                     """;
+        const string relationSql = """
+                                   INSERT INTO product_image
+                                   (product_id, image_id, is_main, position)
+                                   VALUES (@ProductId, @ImageId, true, 0);
+                                   """;
+
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        await using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            var imageId = await connection.ExecuteScalarAsync<Guid>(insertImageSql, new
+            {
+                Url = imageUrl,
+            }, transaction);
+
+            await connection.ExecuteAsync(removeMainSql, new
+            {
+                ProductId = productId
+            }, transaction);
+
+            await connection.ExecuteAsync(relationSql, new
+            {
+                ProductId = productId,
+                ImageId = imageId
+            }, transaction);
+            
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<string?> GetMainImageUrlAsync(Guid productId)
+    {
+        const string sql = """
+                          SELECT img.url
+                          FROM product_image pi
+                          INNER JOIN image img ON img.id = pi.image_id
+                          WHERE pi.product_id = @ProductId
+                                AND pi.is_main = true
+                          LIMIT 1;
+                          """;
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.QueryFirstOrDefaultAsync<string>(sql, new { ProductId = productId });
     }
 }

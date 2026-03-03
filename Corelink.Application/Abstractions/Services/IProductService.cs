@@ -11,4 +11,6 @@ public interface IProductService
     Task<Answer<ProductResponse>> UpdateAsync(Guid id, PatchProductRequest request);
     Task<AnswerBase> AddToBranchAsync(Guid productId, AddProductToBranchRequest request);
     Task<AnswerBase> AddOfferAsync(Guid productBranchId, CreateProductOfferRequest request);
+    Task<AnswerBase> AddImageAsync(Guid productId, string imageUrl);
+    Task<Answer<string?>> GetMainImageUrlAsync(Guid productId);
 }

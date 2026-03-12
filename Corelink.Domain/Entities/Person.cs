@@ -10,6 +10,6 @@ public class Person : BaseEntity
 	public string Email { get; set; } = string.Empty;
 	public string? PhoneNumber { get; set; }
 	public string? Address { get; set; }
-	public Guid LocationId { get; set; }
-	public StatusEnum Status { get; set; } = StatusEnum.Active;
+	public long BranchId { get; set; }
+	public StatusEnum Status { get; set; } = StatusEnum.ACTIVE;
 }

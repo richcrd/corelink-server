@@ -1,6 +1,6 @@
 namespace Corelink.Application.Contracts.Products;
 
 public sealed record AddProductToBranchRequest(
-    Guid BranchId,
+    long BranchId,
     decimal Price
     );

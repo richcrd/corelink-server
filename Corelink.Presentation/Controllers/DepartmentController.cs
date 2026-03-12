@@ -8,8 +8,8 @@ namespace Corelink.Presentation.Controllers;
 [Route("service/[controller]")]
 public class DepartmentController(IDepartmentService service) : ResponseBase
 {
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id)
     {
         return HandleResponse(await service.GetByIdAsync(id));
     }

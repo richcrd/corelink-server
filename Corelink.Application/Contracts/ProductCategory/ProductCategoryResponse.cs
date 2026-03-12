@@ -1,6 +1,6 @@
 namespace Corelink.Application.Contracts.ProductCategory;
 
 public record ProductCategoryResponse(
-    Guid Id,
+    long Id,
     string Name,
     string Description);

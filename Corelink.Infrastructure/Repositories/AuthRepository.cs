@@ -30,7 +30,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
         return await connection.QuerySingleOrDefaultAsync<UserAuthInfo>(sql, new { Username = username });
     }
 
-    public async Task<UserAuthInfo?> GetByUserIdAsync(Guid userId)
+    public async Task<UserAuthInfo?> GetByUserIdAsync(long userId)
     {
         const string sql = """
             SELECT
@@ -79,7 +79,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
         return await connection.ExecuteScalarAsync<bool>(sql, new { Email = email });
     }
 
-    public async Task<Guid?> GetRoleIdByNameAsync(string roleName)
+    public async Task<long?> GetRoleIdByNameAsync(string roleName)
     {
         const string sql = """
             SELECT id
@@ -89,20 +89,20 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
             """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<Guid?>(sql, new { Name = roleName });
+        return await connection.ExecuteScalarAsync<long?>(sql, new { Name = roleName });
     }
 
-    public async Task<(Guid PersonId, Guid UserId)> CreatePersonAndUserAsync(
+    public async Task<(long PersonId, long UserId)> CreatePersonAndUserAsync(
         Person person,
         string username,
         string passwordHash,
-        Guid roleId)
+        long roleId)
     {
         const string insertPerson = """
             INSERT INTO person
-                (first_name, last_name, email, phone_number, address, location_id, status)
+                (first_name, last_name, email, phone_number, address, branch_id, status)
             VALUES
-                (@FirstName, @LastName, @Email, @PhoneNumber, @Address, @LocationId, @Status::status_enum)
+                (@FirstName, @LastName, @Email, @PhoneNumber, @Address, @BranchId, @Status::status_enum)
             RETURNING id;
             """;
 
@@ -119,7 +119,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
 
         try
         {
-            var personId = await connection.ExecuteScalarAsync<Guid>(
+            var personId = await connection.ExecuteScalarAsync<long>(
                 insertPerson,
                 new
                 {
@@ -128,12 +128,12 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
                     person.Email,
                     person.PhoneNumber,
                     person.Address,
-                    person.LocationId,
+                    person.BranchId,
                     Status = person.Status.ToDb()
                 },
                 tx);
 
-            var userId = await connection.ExecuteScalarAsync<Guid>(
+            var userId = await connection.ExecuteScalarAsync<long>(
                 insertUser,
                 new
                 {
@@ -141,7 +141,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
                     Username = username,
                     PasswordHash = passwordHash,
                     RoleId = roleId,
-                    Status = StatusEnum.Active.ToDb()
+                    Status = StatusEnum.ACTIVE.ToDb()
                 },
                 tx);
 
@@ -155,7 +155,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
         }
     }
 
-    public async Task<Guid> CreateRefreshTokenAsync(Guid userId, string tokenHash, DateTime expiresAt)
+    public async Task<long> CreateRefreshTokenAsync(long userId, string tokenHash, DateTime expiresAt)
     {
         const string sql = """
             INSERT INTO app_user_refresh_token
@@ -166,7 +166,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
             """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<Guid>(sql, new
+        return await connection.ExecuteScalarAsync<long>(sql, new
         {
             UserId = userId,
             TokenHash = tokenHash,
@@ -191,7 +191,7 @@ public sealed class AuthRepository(IDbConnectionFactory connectionFactory) : IAu
         return await connection.QuerySingleOrDefaultAsync<RefreshTokenInfo>(sql, new { TokenHash = tokenHash });
     }
 
-    public async Task RevokeRefreshTokenAsync(Guid refreshTokenId, DateTime revokedAt, Guid? replacedByTokenId)
+    public async Task RevokeRefreshTokenAsync(long refreshTokenId, DateTime revokedAt, long? replacedByTokenId)
     {
         const string sql = """
             UPDATE app_user_refresh_token

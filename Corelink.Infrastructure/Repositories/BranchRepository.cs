@@ -6,20 +6,20 @@ using Dapper;
 
 namespace Corelink.Infrastructure.Repositories;
 
-public sealed class LocationRepository(IDbConnectionFactory connectionFactory) : ILocationRepository
+public sealed class BranchRepository(IDbConnectionFactory connectionFactory) : IBranchRepository
 {
-    public async Task<Guid> CreateAsync(Location location)
+    public async Task<long> CreateAsync(Branch location)
     {
         const string sql = """
-            INSERT INTO catalog_location
-                (name, department_id, status)
+            INSERT INTO catalog_branch
+                (name, address, department_id, status)
             VALUES
-                (@Name, @DepartmentId, @Status::status_enum)
+                (@Name, @Address, @DepartmentId, @Status::status_enum)
             RETURNING id;
             """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<Guid>(sql, new
+        return await connection.ExecuteScalarAsync<long>(sql, new
         {
             location.Name,
             location.DepartmentId,
@@ -27,7 +27,7 @@ public sealed class LocationRepository(IDbConnectionFactory connectionFactory) :
         });
     }
 
-    public async Task<Location?> GetByIdAsync(Guid id)
+    public async Task<Branch?> GetByIdAsync(long id)
     {
         const string sql = """
             SELECT
@@ -35,16 +35,16 @@ public sealed class LocationRepository(IDbConnectionFactory connectionFactory) :
                 name AS Name,
                 department_id AS DepartmentId,
                 status::text AS Status
-            FROM catalog_location
+            FROM catalog_branch
             WHERE id = @Id
             LIMIT 1;
             """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.QueryFirstOrDefaultAsync<Location>(sql, new { Id = id });
+        return await connection.QueryFirstOrDefaultAsync<Branch>(sql, new { Id = id });
     }
 
-    public async Task<IReadOnlyList<Location>> ListByDepartmentIdAsync(Guid departmentId)
+    public async Task<IReadOnlyList<Branch>> ListByDepartmentIdAsync(long departmentId)
     {
         const string sql = """
             SELECT
@@ -52,23 +52,23 @@ public sealed class LocationRepository(IDbConnectionFactory connectionFactory) :
                 cl.name AS Name,
                 cd.name AS DepartmentName,
                 cl.status::text AS Status
-            FROM catalog_location cl
+            FROM catalog_branch cl
             LEFT JOIN catalog_department cd on cd.id = cl.department_id
             WHERE department_id = @DepartmentId
             ORDER BY name;
             """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        var rows = await connection.QueryAsync<Location>(sql, new { DepartmentId = departmentId });
+        var rows = await connection.QueryAsync<Branch>(sql, new { DepartmentId = departmentId });
         return rows.AsList();
     }
 
-    public async Task<bool> ExistsByNameInDepartmentAsync(string name, Guid departmentId)
+    public async Task<bool> ExistsByNameInDepartmentAsync(string name, long departmentId)
     {
         const string sql = """
             SELECT EXISTS(
                 SELECT 1
-                FROM catalog_location
+                FROM catalog_branch
                 WHERE LOWER(name) = LOWER(@Name)
                   AND department_id = @DepartmentId
             );

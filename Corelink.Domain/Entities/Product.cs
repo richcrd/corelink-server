@@ -7,8 +7,8 @@ public class Product : BaseEntity
 {
     public string Name { get; set; }
     public string? Description { get; set; }
-    public Guid CategoryId { get; set; }
-    public StatusEnum Status { get; set; } = StatusEnum.Active;
+    public long CategoryId { get; set; }
+    public StatusEnum Status { get; set; } = StatusEnum.ACTIVE;
 
     private readonly List<ProductImage> _images = new();
     public IReadOnlyCollection<ProductImage> Images => _images;
@@ -18,12 +18,12 @@ public class Product : BaseEntity
     
     private Product() {}
 
-    public Product(string name, string? description, Guid categoryId)
+    public Product(string name, string? description, long categoryId)
     {
         Name = name;
         Description = description;
         CategoryId = categoryId;
-        Status = StatusEnum.Active;
+        Status = StatusEnum.ACTIVE;
     }
 
     public void AddBranch(ProductBranch branch)
@@ -42,7 +42,7 @@ public class Product : BaseEntity
 
     public void Deactivate()
     {
-        Status = StatusEnum.Inactive;
+        Status = StatusEnum.INACTIVE;
     }
     
     public void UpdateName(string name)

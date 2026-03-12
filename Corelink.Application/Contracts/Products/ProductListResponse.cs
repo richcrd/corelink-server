@@ -2,7 +2,7 @@ namespace Corelink.Application.Contracts.Products;
 
 public sealed class ProductListResponse
 {
-    public Guid Id { get; init; }
+    public long Id { get; init; }
     public string Name { get; init; } = default!;
 
     public string? ImageUrl { get; init; }

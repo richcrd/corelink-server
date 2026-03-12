@@ -8,10 +8,10 @@ public class ProductOffer : BaseEntity
     public decimal OfferPrice { get; }
     public DateTime? StartDate { get; }
     public DateTime? EndDate { get; }
-    public StatusEnum Status { get; private set; } = StatusEnum.Active;
+    public StatusEnum Status { get; private set; } = StatusEnum.ACTIVE;
 
     public ProductOffer(
-        Guid id,
+        long id,
         decimal offerPrice,
         DateTime? startDate,
         DateTime? endDate,
@@ -29,7 +29,7 @@ public class ProductOffer : BaseEntity
 
     public bool IsActive()
     {
-        if (Status != StatusEnum.Active)
+        if (Status != StatusEnum.ACTIVE)
             return false;
 
         var now = DateTime.UtcNow;

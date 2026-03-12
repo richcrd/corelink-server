@@ -6,19 +6,19 @@ namespace Corelink.Application.Interface.Persistence;
 public interface IAuthRepository
 {
     Task<UserAuthInfo?> GetByUsernameAsync(string username);
-    Task<UserAuthInfo?> GetByUserIdAsync(Guid userId);
+    Task<UserAuthInfo?> GetByUserIdAsync(long userId);
     Task<bool> UsernameExistsAsync(string username);
     Task<bool> EmailExistsAsync(string email);
 
-    Task<Guid?> GetRoleIdByNameAsync(string roleName);
+    Task<long?> GetRoleIdByNameAsync(string roleName);
 
-    Task<(Guid PersonId, Guid UserId)> CreatePersonAndUserAsync(
+    Task<(long PersonId, long UserId)> CreatePersonAndUserAsync(
         Person person,
         string username,
         string passwordHash,
-        Guid roleId);
+        long roleId);
 
-    Task<Guid> CreateRefreshTokenAsync(Guid userId, string tokenHash, DateTime expiresAt);
+    Task<long> CreateRefreshTokenAsync(long userId, string tokenHash, DateTime expiresAt);
     Task<RefreshTokenInfo?> GetRefreshTokenAsync(string tokenHash);
-    Task RevokeRefreshTokenAsync(Guid refreshTokenId, DateTime revokedAt, Guid? replacedByTokenId);
+    Task RevokeRefreshTokenAsync(long refreshTokenId, DateTime revokedAt, long? replacedByTokenId);
 }

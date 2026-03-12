@@ -5,5 +5,5 @@ namespace Corelink.Application.Abstractions.Services;
 
 public interface IDepartmentService
 {
-    Task<Answer<DepartmentResponse?>> GetByIdAsync(Guid id);
+    Task<Answer<DepartmentResponse?>> GetByIdAsync(long id);
 }

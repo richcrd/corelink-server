@@ -1,6 +1,6 @@
 namespace Corelink.Application.Contracts.Locations;
 
-public record CreateLocationRequest(
+public record CreateBranchRequest(
     string Name,
-    Guid DepartmentId
+    long DepartmentId
 );

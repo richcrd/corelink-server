@@ -2,12 +2,12 @@ namespace Corelink.Domain.Enums;
 
 public enum StatusEnum
 {
-    Active,
-    Inactive,
-    Pending,
-    Approved,
-    Rejected,
-    Cancelled
+    ACTIVE,
+    INACTIVE,
+    PENDING,
+    APROVVED,
+    REJECTED,
+    CANCELLED
 }
 
 public static class StatusEnumExtensions
@@ -18,7 +18,7 @@ public static class StatusEnumExtensions
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return StatusEnum.Active;
+            return StatusEnum.ACTIVE;
         }
 
         return Enum.Parse<StatusEnum>(value.Trim(), ignoreCase: true);

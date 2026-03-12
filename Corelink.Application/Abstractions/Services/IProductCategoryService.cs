@@ -6,11 +6,11 @@ namespace Corelink.Application.Abstractions.Services;
 public interface IProductCategoryService
 { 
     Task<Answer<ProductCategoryResponse>> CreateAsync(CreateProductCategoryRequest command);
-    Task<Answer<ProductCategoryResponse?>> GetByIdAsync(Guid id);
+    Task<Answer<ProductCategoryResponse?>> GetByIdAsync(long id);
     Task<Answer<IReadOnlyList<ProductCategoryListResponse>>> GetAllAsync();
-    Task<Answer<ProductCategoryResponse>> UpdateAsync(Guid id, PatchProductCategoryRequest command);
+    Task<Answer<ProductCategoryResponse>> UpdateAsync(long id, PatchProductCategoryRequest command);
     Task<Answer<string>> UpdateImageAsync(
-        Guid categoryId,
+        long categoryId,
         Stream imageStream,
         string fileName,
         string contentType);

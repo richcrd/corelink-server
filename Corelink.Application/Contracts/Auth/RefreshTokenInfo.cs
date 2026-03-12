@@ -1,7 +1,7 @@
 namespace Corelink.Application.Contracts.Auth;
 
 public sealed record RefreshTokenInfo(
-    Guid Id,
-    Guid UserId,
+    long Id,
+    long UserId,
     DateTime ExpiresAt,
     DateTime? RevokedAt);

@@ -62,9 +62,9 @@ public class ProductCategoryService(
         }
     }
 
-    public async Task<Answer<ProductCategoryResponse?>> GetByIdAsync(Guid id)
+    public async Task<Answer<ProductCategoryResponse?>> GetByIdAsync(long id)
     {
-        if (id == Guid.Empty)
+        if (id <= 0)
         {
             return Answer<ProductCategoryResponse?>.BadRequest("Id is required");
         }
@@ -81,9 +81,9 @@ public class ProductCategoryService(
         return Answer<IReadOnlyList<ProductCategoryListResponse>>.Ok(response);
     }
 
-    public async Task<Answer<ProductCategoryResponse>> UpdateAsync(Guid id, PatchProductCategoryRequest command)
+    public async Task<Answer<ProductCategoryResponse>> UpdateAsync(long id, PatchProductCategoryRequest command)
     {
-        if (id == Guid.Empty)
+        if (id <= 0)
             return Answer<ProductCategoryResponse>.BadRequest("Id is required");
 
         var entity = await _repository.GetById(id);
@@ -107,9 +107,9 @@ public class ProductCategoryService(
             : Answer<ProductCategoryResponse>.Ok(ProductCategoryMapper.ToResponse(entity));
     }
 
-    public async Task<Answer<string>> UpdateImageAsync(Guid categoryId, Stream imageStream, string fileName, string contentType)
+    public async Task<Answer<string>> UpdateImageAsync(long categoryId, Stream imageStream, string fileName, string contentType)
     {
-        if (categoryId == Guid.Empty)
+        if (categoryId <= 0)
             return Answer<string>.BadRequest("Id is required");
 
         var category = await _repository.GetById(categoryId);
@@ -126,7 +126,7 @@ public class ProductCategoryService(
             newImageUrl = await _fileService.UploadAsync(imageStream, fileName, contentType);
 
             var imageId = await _repository.CreateImageAsync(newImageUrl);
-            await _repository.UpdateImageAsync(categoryId, imageId);
+            //await _repository.UpdateImageAsync(categoryId, imageId);
 
             if (oldImageUrl is not null)
             {

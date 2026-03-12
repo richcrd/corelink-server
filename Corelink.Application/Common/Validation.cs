@@ -10,6 +10,9 @@ public static class Validation
     public static Answer<T>? RequiredGuid<T>(Guid value, string fieldName)
         => value == Guid.Empty ? Answer<T>.BadRequest($"{fieldName} is required") : null;
 
+    public static Answer<T>? RequiredLong<T>(long value, string fieldName)
+        => value <= 0 ? Answer<T>.BadRequest($"{fieldName} is required") : null;
+
     public static Answer<T>? Ensure<T>(bool condition, string message)
         => condition ? null : Answer<T>.BadRequest(message);
 

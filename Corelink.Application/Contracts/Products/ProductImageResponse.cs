@@ -1,7 +1,7 @@
 namespace Corelink.Application.Contracts.Products;
 
 public sealed record ProductImageResponse(
-    Guid Id,
+    long Id,
     string Url,
     bool IsMain,
     int Position

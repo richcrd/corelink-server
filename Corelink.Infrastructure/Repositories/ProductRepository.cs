@@ -9,31 +9,30 @@ namespace Corelink.Infrastructure.Repositories;
 
 public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : IProductRepository
 {
-    public async Task<Guid> CreateAsync(Product product)
+    public async Task<long> CreateAsync(Product product)
     {
         const string sql = """
                            INSERT INTO product
-                           (name, description, category_id, status)
+                           (name, description, status)
                            VALUES
-                           (@Name, @Description, @CategoryId, @Status::status_enum)
+                           (@Name, @Description, @Status::status_enum)
                            RETURNING id;
                            """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.ExecuteScalarAsync<Guid>(sql, new
+        return await connection.ExecuteScalarAsync<long>(sql, new
         {
             product.Name,
             product.Description,
-            product.CategoryId,
-            Status = product.Status.ToDb()
+            product.Status
         });
     }
 
-    public async Task<Product?> GetByIdAsync(Guid id)
+    public async Task<Product?> GetByIdAsync(long id)
     {
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
 
         const string productSql = """
-                                  SELECT id, name, description, category_id as CategoryId,
+                                  SELECT id, name, description,
                                         status::text as Status
                                   FROM product
                                   WHERE id = @Id
@@ -46,9 +45,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         const string imagesSql = """
                                  SELECT
                                      img.id,
-                                     img.url,
-                                     pi.is_main as IsMain,
-                                     pi.position
+                                     img.url
                                  FROM product_image pi
                                  INNER JOIN image img on img.id = pi.image_id
                                  WHERE pi.product_id = @ProductId;
@@ -63,7 +60,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                         branch_id as BranchId,
                                         price,
                                         status::text as Status
-                                   FROM product_branch
+                                   FROM branch_product
                                    WHERE product_id = @ProductId;
                                    """;
         var branches = await connection.QueryAsync<ProductBranch>(branchesSql, new { ProductId = id });
@@ -77,7 +74,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                             end_date AS EndDate,
                                             status::text AS Status
                                         FROM product_offer
-                                        WHERE product_branch_id = @BranchId;
+                                        WHERE branch_product_id = @BranchId;
                                      """;
             var offers = await connection.QueryAsync<ProductOffer>(offersSql, new { BranchId = branch.Id });
 
@@ -110,7 +107,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return rows > 0;
     }
 
-    public async Task<IReadOnlyList<ProductListResponse>> GetByBranchAsync(Guid branchId)
+    public async Task<IReadOnlyList<ProductListResponse>> GetByBranchAsync(long branchId)
     {
         const string sql = """
                            SELECT
@@ -128,9 +125,9 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                     ELSE pb.price
                                 END AS FinalPrice
                            FROM product p
-                           INNER JOIN product_branch pb ON pb.product_id = p.id
-                           LEFT JOIN product_offer po ON po.product_branch_id = pb.id
-                           LEFT JOIN product_image pi ON pi.product_id = p.id AND pi.is_main = true
+                           INNER JOIN branch_product pb ON pb.product_id = p.id
+                           LEFT JOIN product_offer po ON po.branch_product_id = pb.id
+                           LEFT JOIN product_image pi ON pi.product_id = p.id
                            LEFT JOIN image img ON img.id = pi.image_id
                            WHERE pb.branch_id = @BranchId
                            AND p.status = 'ACTIVE'
@@ -144,10 +141,10 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return result.ToList();
     }
 
-    public async Task<bool> AddToBranchAsync(Guid productId, Guid branchId, decimal price)
+    public async Task<bool> AddToBranchAsync(long productId, long branchId, decimal price)
     {
         const string sql = """
-                           INSERT INTO product_branch (product_id, branch_id, price, status)
+                           INSERT INTO branch_product (product_id, branch_id, price, status)
                            VALUES (@ProductId, @BranchId, @Price, 'ACTIVE');
                            """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
@@ -161,11 +158,11 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return rows > 0;
     }
 
-    public async Task<bool> AddOfferAsync(Guid productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate)
+    public async Task<bool> AddOfferAsync(long productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate)
     {
         const string sql = """
                            INSERT INTO product_offer
-                           (product_branch_id, offer_price, start_date, end_date, status)
+                           (branch_product_id, offer_price, start_date, end_date, status)
                            VALUES (@ProductBranchId, @OfferPrice, @StartDate, @EndDate, 'ACTIVE')
                            """;
 
@@ -181,22 +178,17 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return rows > 0;
     }
 
-    public async Task AddImageAsync(Guid productId, string imageUrl)
+    public async Task AddImageAsync(long productId, string imageUrl)
     {
         const string insertImageSql = """
                                       INSERT INTO image (url)
                                       VALUES (@Url)
                                       RETURNING id;
                                       """;
-        const string removeMainSql = """
-                                     UPDATE product_image
-                                     SET is_main = false
-                                     WHERE product_id = @ProductId
-                                     """;
         const string relationSql = """
                                    INSERT INTO product_image
-                                   (product_id, image_id, is_main, position)
-                                   VALUES (@ProductId, @ImageId, true, 0);
+                                   (product_id, image_id)
+                                   VALUES (@ProductId, @ImageId);
                                    """;
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
@@ -204,14 +196,9 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
 
         try
         {
-            var imageId = await connection.ExecuteScalarAsync<Guid>(insertImageSql, new
+            var imageId = await connection.ExecuteScalarAsync<long>(insertImageSql, new
             {
                 Url = imageUrl,
-            }, transaction);
-
-            await connection.ExecuteAsync(removeMainSql, new
-            {
-                ProductId = productId
             }, transaction);
 
             await connection.ExecuteAsync(relationSql, new
@@ -229,14 +216,13 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         }
     }
 
-    public async Task<string?> GetMainImageUrlAsync(Guid productId)
+    public async Task<string?> GetMainImageUrlAsync(long productId)
     {
         const string sql = """
                           SELECT img.url
                           FROM product_image pi
                           INNER JOIN image img ON img.id = pi.image_id
                           WHERE pi.product_id = @ProductId
-                                AND pi.is_main = true
                           LIMIT 1;
                           """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();

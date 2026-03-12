@@ -24,7 +24,7 @@ public sealed class AuthService(
     private static string NormalizeEmail(string email) => Validation.Trim(email);
 
     private static Answer<T>? EnsureActive<T>(UserAuthInfo user)
-        => Validation.Ensure<T>(user.Status == StatusEnum.Active, "User is not active");
+        => Validation.Ensure<T>(user.Status == StatusEnum.ACTIVE, "User is not active");
 
     private async Task<Answer<AuthResponse>> CreateSessionAsync(UserAuthInfo user, string message)
     {
@@ -54,7 +54,7 @@ public sealed class AuthService(
             Validation.Required<AuthResponse>(request.FirstName, nameof(request.FirstName)),
             Validation.Required<AuthResponse>(request.LastName, nameof(request.LastName)),
             Validation.Required<AuthResponse>(request.Email, nameof(request.Email)),
-            Validation.RequiredGuid<AuthResponse>(request.LocationId, nameof(request.LocationId)));
+            Validation.RequiredLong<AuthResponse>(request.BranchId, nameof(request.BranchId)));
 
         if (error is not null) return error;
 
@@ -84,8 +84,8 @@ public sealed class AuthService(
             Email = email,
             PhoneNumber = Validation.TrimToNull(request.PhoneNumber),
             Address = Validation.TrimToNull(request.Address),
-            LocationId = request.LocationId,
-            Status = StatusEnum.Active
+            BranchId = request.BranchId,
+            Status = StatusEnum.ACTIVE
         };
 
         var passwordHash = passwordHasher.Hash(request.Password);

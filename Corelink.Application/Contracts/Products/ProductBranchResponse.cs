@@ -1,8 +1,8 @@
 namespace Corelink.Application.Contracts.Products;
 
 public sealed record ProductBranchResponse(
-    Guid Id,
-    Guid BranchId,
+    long Id,
+    long BranchId,
     decimal Price,
     decimal FinalPrice,
     string Status,

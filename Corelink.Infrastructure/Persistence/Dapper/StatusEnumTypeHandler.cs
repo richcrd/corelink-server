@@ -16,7 +16,7 @@ internal sealed class StatusEnumTypeHandler : SqlMapper.TypeHandler<StatusEnum>
     {
         return value switch
         {
-            null => StatusEnum.Active,
+            null => StatusEnum.ACTIVE,
             StatusEnum status => status,
             string s => StatusEnumExtensions.FromDb(s),
             _ => StatusEnumExtensions.FromDb(value.ToString() ?? string.Empty)

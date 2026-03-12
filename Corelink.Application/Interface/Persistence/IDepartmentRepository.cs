@@ -4,6 +4,6 @@ namespace Corelink.Application.Interface.Persistence;
 
 public interface IDepartmentRepository
 {
-    Task<Guid> CreateAsync(Department department);
-    Task<Department?> GetByIdAsync(Guid id);
+    Task<long> CreateAsync(Department department);
+    Task<Department?> GetByIdAsync(long id);
 }

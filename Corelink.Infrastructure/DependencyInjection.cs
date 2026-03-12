@@ -42,7 +42,7 @@ public static class DependencyInjection
 
         // Repositories
         services.AddScoped<IDepartmentRepository, DepartmentRepository>();
-        services.AddScoped<ILocationRepository, LocationRepository>();
+        services.AddScoped<IBranchRepository, BranchRepository>();
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();

@@ -5,7 +5,7 @@ namespace Corelink.Domain.Entities;
 
 public class ProductBranch : BaseEntity
 {
-    public Guid BranchId { get; }
+    public long BranchId { get; }
     public decimal Price { get; private set; }
     public StatusEnum Status { get; private set; }
 
@@ -13,14 +13,15 @@ public class ProductBranch : BaseEntity
     public IReadOnlyCollection<ProductOffer> Offers => _offers;
 
     public ProductBranch(
-        Guid id,
-        Guid branchId,
+        long id,
+        long branchId,
         decimal price,
         StatusEnum status)
     {
         if (price < 0)
             throw new ArgumentException("Price cannot be negative");
 
+        Id = id;
         BranchId = branchId;
         Price = price;
         Status = status;

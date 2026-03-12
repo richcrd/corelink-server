@@ -7,22 +7,22 @@ namespace Corelink.Presentation.Controllers;
 
 [ApiController]
 [Route("service/[controller]")]
-public sealed class LocationController(ILocationService service) : ResponseBase
+public sealed class BranchController(IBranchService service) : ResponseBase
 {
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateLocationRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateBranchRequest request)
     {
         return HandleResponse(await service.CreateAsync(request));
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id)
     {
         return HandleResponse(await service.GetByIdAsync(id));
     }
 
-    [HttpGet("by-department/{departmentId:guid}")]
-    public async Task<IActionResult> ListByDepartment(Guid departmentId)
+    [HttpGet("by-department/{departmentId:long}")]
+    public async Task<IActionResult> ListByDepartment(long departmentId)
     {
         return HandleResponse(await service.ListByDepartmentIdAsync(departmentId));
     }

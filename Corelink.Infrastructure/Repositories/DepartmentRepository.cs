@@ -7,12 +7,12 @@ namespace Corelink.Infrastructure.Repositories;
 
 public sealed class DepartmentRepository(IDbConnectionFactory connectionFactory) : IDepartmentRepository
 {
-    public async Task<Guid> CreateAsync(Department department)
+    public async Task<long> CreateAsync(Department department)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<Department?> GetByIdAsync(Guid id)
+    public async Task<Department?> GetByIdAsync(long id)
     {
         const string sql = """
                            SELECT 

@@ -3,10 +3,10 @@ using Corelink.Domain.Enums;
 namespace Corelink.Application.Contracts.Auth;
 
 public sealed record UserAuthInfo(
-    Guid UserId,
-    Guid PersonId,
+    long UserId,
+    long PersonId,
     string Username,
     string PasswordHash,
-    Guid RoleId,
+    long RoleId,
     string RoleName,
     StatusEnum Status);

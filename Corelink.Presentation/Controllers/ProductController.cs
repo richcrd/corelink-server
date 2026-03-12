@@ -15,8 +15,8 @@ public sealed class ProductController(
 {
     private readonly IProductService _service = service;
 
-    [HttpPost("{id:guid}/image")]
-    public async Task<IActionResult> UploadImage(Guid id, IFormFile file)
+    [HttpPost("{id:long}/image")]
+    public async Task<IActionResult> UploadImage(long id, IFormFile file)
     {
         if (file is null)
             return BadRequest("File is required");
@@ -33,21 +33,21 @@ public sealed class ProductController(
         return HandleResponse(result);
     }
 
-    [HttpGet("{id:guid}/image")]
-    public async Task<IActionResult> GetMainImage(Guid id)
+    [HttpGet("{id:long}/image")]
+    public async Task<IActionResult> GetMainImage(long id)
     {
         var result = await _service.GetMainImageUrlAsync(id);
         return HandleResponse(result);
     }
 
-    [HttpGet("branch/{branchId:guid}")]
-    public async Task<IActionResult> GetByBranch(Guid branchId)
+    [HttpGet("branch/{branchId:long}")]
+    public async Task<IActionResult> GetByBranch(long branchId)
     {
         return HandleResponse(await _service.GetByBranchAsync(branchId));
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetById(Guid id)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id)
     {
         return HandleResponse(await _service.GetByIdAsync(id));
     }
@@ -58,20 +58,20 @@ public sealed class ProductController(
         return HandleResponse(await _service.CreateAsync(request));
     }
 
-    [HttpPatch("{id:guid}")]
-    public async Task<IActionResult> Patch(Guid id, [FromBody] PatchProductRequest request)
+    [HttpPatch("{id:long}")]
+    public async Task<IActionResult> Patch(long id, [FromBody] PatchProductRequest request)
     {
         return HandleResponse(await _service.UpdateAsync(id, request));
     }
 
-    [HttpPost("{id:guid}/branch")]
-    public async Task<IActionResult> AddToBranch(Guid id, [FromBody] AddProductToBranchRequest request)
+    [HttpPost("{id:long}/branch")]
+    public async Task<IActionResult> AddToBranch(long id, [FromBody] AddProductToBranchRequest request)
     {
         return HandleResponse(await _service.AddToBranchAsync(id, request));
     }
     
-    [HttpPost("branch/{productBranchId:guid}/offer")]
-    public async Task<IActionResult> AddOffer(Guid productBranchId, [FromBody] CreateProductOfferRequest request)
+    [HttpPost("branch/{productBranchId:long}/offer")]
+    public async Task<IActionResult> AddOffer(long productBranchId, [FromBody] CreateProductOfferRequest request)
     {
         return HandleResponse(await service.AddOfferAsync(productBranchId, request));
     }

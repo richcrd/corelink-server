@@ -10,7 +10,7 @@ public class ProductImage : BaseEntity
     
     private ProductImage() { }
 
-    public ProductImage(Guid id, string url, bool isMain, int position)
+    public ProductImage(long id, string url, bool isMain, int position)
     {
         Id = id;
         Url = url;

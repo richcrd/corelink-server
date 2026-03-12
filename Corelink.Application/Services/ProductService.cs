@@ -16,7 +16,7 @@ public class ProductService(IProductRepository repository) : IProductService
     {
         var error = Validation.FirstError(
             Validation.Required<ProductResponse>(request.Name, nameof(request.Name)),
-            Validation.RequiredGuid<ProductResponse>(request.CategoryId, nameof(request.CategoryId))
+            Validation.RequiredLong<ProductResponse>(request.CategoryId, nameof(request.CategoryId))
         );
 
         if (error is not null)
@@ -29,13 +29,15 @@ public class ProductService(IProductRepository repository) : IProductService
         );
 
         var id = await _repository.CreateAsync(entity);
+
+        entity.Id = id;
         
         return Answer<ProductResponse>.Ok(ProductMapper.ToResponse(entity));
     }
 
-    public async Task<Answer<ProductResponse?>> GetByIdAsync(Guid id)
+    public async Task<Answer<ProductResponse?>> GetByIdAsync(long id)
     {
-        if (id == Guid.Empty)
+        if (id <= 0)
             return Answer<ProductResponse?>.BadRequest("Id is required");
 
         var product = await _repository.GetByIdAsync(id);
@@ -45,9 +47,9 @@ public class ProductService(IProductRepository repository) : IProductService
             : Answer<ProductResponse?>.Ok(ProductMapper.ToResponse(product));
     }
 
-    public async Task<Answer<IReadOnlyList<ProductListResponse>>> GetByBranchAsync(Guid branchId)
+    public async Task<Answer<IReadOnlyList<ProductListResponse>>> GetByBranchAsync(long branchId)
     {
-        if (branchId == Guid.Empty)
+        if (branchId <= 0)
             return Answer<IReadOnlyList<ProductListResponse>>.BadRequest("BranchId is required");
 
         var products = await _repository.GetByBranchAsync(branchId);
@@ -55,9 +57,9 @@ public class ProductService(IProductRepository repository) : IProductService
         return Answer<IReadOnlyList<ProductListResponse>>.Ok(products);
     }
 
-    public async Task<Answer<ProductResponse>> UpdateAsync(Guid id, PatchProductRequest request)
+    public async Task<Answer<ProductResponse>> UpdateAsync(long id, PatchProductRequest request)
     {
-        if (id == Guid.Empty)
+        if (id <= 0)
             return Answer<ProductResponse>.BadRequest("Id is required");
 
         var entity = await _repository.GetByIdAsync(id);
@@ -81,9 +83,9 @@ public class ProductService(IProductRepository repository) : IProductService
             : Answer<ProductResponse>.Ok(ProductMapper.ToResponse(entity));
     }
 
-    public async Task<AnswerBase> AddToBranchAsync(Guid productId, AddProductToBranchRequest request)
+    public async Task<AnswerBase> AddToBranchAsync(long productId, AddProductToBranchRequest request)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
             return AnswerBase.BadRequest("ProductId is required");
         
         if (request.Price < 0)
@@ -96,9 +98,9 @@ public class ProductService(IProductRepository repository) : IProductService
             : AnswerBase.Ok();
     }
 
-    public async Task<AnswerBase> AddOfferAsync(Guid productBranchId, CreateProductOfferRequest request)
+    public async Task<AnswerBase> AddOfferAsync(long productBranchId, CreateProductOfferRequest request)
     {
-        if (productBranchId == Guid.Empty)
+        if (productBranchId <= 0)
             return AnswerBase.BadRequest("ProductBranchId is required");
         
         if (request.OfferPrice < 0)
@@ -112,9 +114,9 @@ public class ProductService(IProductRepository repository) : IProductService
             : AnswerBase.Ok();
     }
 
-    public async Task<AnswerBase> AddImageAsync(Guid productId, string imageUrl)
+    public async Task<AnswerBase> AddImageAsync(long productId, string imageUrl)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
             return AnswerBase.BadRequest("Product id is required");
         
         if (string.IsNullOrWhiteSpace(imageUrl))
@@ -130,9 +132,9 @@ public class ProductService(IProductRepository repository) : IProductService
         return AnswerBase.Ok();
     }
 
-    public async Task<Answer<string?>> GetMainImageUrlAsync(Guid productId)
+    public async Task<Answer<string?>> GetMainImageUrlAsync(long productId)
     {
-        if (productId == Guid.Empty)
+        if (productId <= 0)
             return Answer<string?>.BadRequest("ProductId is required");
 
         var url = await _repository.GetMainImageUrlAsync(productId);

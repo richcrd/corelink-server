@@ -35,14 +35,14 @@ public sealed class ProductCategoryController(IProductCategoryService service) :
         return HandleResponse(await service.CreateAsync(command));
     }
 
-    [HttpPatch("{id:guid}")]
-    public async Task<IActionResult> Patch(Guid id, [FromBody] PatchProductCategoryRequest request)
+    [HttpPatch("{id:long}")]
+    public async Task<IActionResult> Patch(long id, [FromBody] PatchProductCategoryRequest request)
     {
         return HandleResponse(await service.UpdateAsync(id, request));
     }
 
-    [HttpPut("{id:guid}/image")]
-    public async Task<IActionResult> UpdateImage(Guid id, IFormFile? file)
+    [HttpPut("{id:long}/image")]
+    public async Task<IActionResult> UpdateImage(long id, IFormFile? file)
     {
         if (file is null || file.Length == 0)
         {

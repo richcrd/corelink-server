@@ -85,24 +85,31 @@ public sealed class ProductCategoryRepository(IDbConnectionFactory connectionFac
 
     public async Task UpdateImageAsync(long categoryId, long imageId)
     {
-        // const string removeMain = """
-        //                           UPDATE product_category_image
-        //                           SET is_main = false
-        //                           WHERE category_id = @CategoryId;
-        //                           """;
-        // const string setMain = """
-        //                        INSERT INTO product_category_image
-        //                        (category_id, image_id, is_main)
-        //                        VALUES (@CategoryId, @ImageId, true);
-        //                        """;
-        //
-        // await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        //
-        // await using var transaction = connection.BeginTransaction();
-        //
-        // await connection.ExecuteAsync(removeMain, new { CategoryId = categoryId }, transaction);
-        // await connection.ExecuteAsync(setMain, new { CategoryId = categoryId, ImageId = imageId }, transaction);
-        // transaction.Commit();
+        const string deleteRelationsSql = """
+                                      DELETE FROM product_category_image
+                                      WHERE category_id = @CategoryId;
+                                      """;
+
+        const string insertRelationSql = """
+                                      INSERT INTO product_category_image
+                                          (category_id, image_id)
+                                      VALUES (@CategoryId, @ImageId);
+                                      """;
+
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        await using var transaction = connection.BeginTransaction();
+
+        try
+        {
+            await connection.ExecuteAsync(deleteRelationsSql, new { CategoryId = categoryId }, transaction);
+            await connection.ExecuteAsync(insertRelationSql, new { CategoryId = categoryId, ImageId = imageId }, transaction);
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 
     public async Task<string?> GetMainImageUrlAsync(long categoryId)

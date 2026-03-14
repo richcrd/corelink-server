@@ -13,9 +13,9 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
     {
         const string sql = """
                            INSERT INTO product
-                           (name, description, status)
+                           (name, description, category_id, status)
                            VALUES
-                           (@Name, @Description, @Status::status_enum)
+                           (@Name, @Description, @CategoryId, @Status::status_enum)
                            RETURNING id;
                            """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
@@ -23,7 +23,8 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         {
             product.Name,
             product.Description,
-            product.Status
+            product.CategoryId,
+            Status = product.Status.ToDb()
         });
     }
 
@@ -32,7 +33,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
 
         const string productSql = """
-                                  SELECT id, name, description,
+                                  SELECT id, name, description, category_id as CategoryId,
                                         status::text as Status
                                   FROM product
                                   WHERE id = @Id
@@ -141,18 +142,19 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return result.ToList();
     }
 
-    public async Task<bool> AddToBranchAsync(long productId, long branchId, decimal price)
+    public async Task<bool> AddToBranchAsync(long productId, long branchId, decimal price, int stock)
     {
         const string sql = """
-                           INSERT INTO branch_product (product_id, branch_id, price, status)
-                           VALUES (@ProductId, @BranchId, @Price, 'ACTIVE');
+                           INSERT INTO branch_product (product_id, branch_id, price, stock, status)
+                           VALUES (@ProductId, @BranchId, @Price, @Stock, 'ACTIVE');
                            """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         var rows = await connection.ExecuteAsync(sql, new
         {
             ProductId = productId,
             BranchId = branchId,
-            Price = price
+            Price = price,
+            Stock = stock
         });
 
         return rows > 0;

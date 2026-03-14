@@ -119,6 +119,7 @@ public class ProductCategoryService(
         
         string? oldImageUrl = null;
         string? newImageUrl = null;
+        var dbUpdated = false;
         try
         {
             oldImageUrl = await _repository.GetMainImageUrlAsync(categoryId);
@@ -126,7 +127,8 @@ public class ProductCategoryService(
             newImageUrl = await _fileService.UploadAsync(imageStream, fileName, contentType);
 
             var imageId = await _repository.CreateImageAsync(newImageUrl);
-            //await _repository.UpdateImageAsync(categoryId, imageId);
+            await _repository.UpdateImageAsync(categoryId, imageId);
+            dbUpdated = true;
 
             if (oldImageUrl is not null)
             {
@@ -137,9 +139,15 @@ public class ProductCategoryService(
         }
         catch
         {
-            if (newImageUrl is not null)
+            if (!dbUpdated && newImageUrl is not null)
             {
-                await _fileService.DeleteAsync(newImageUrl);
+                try
+                {
+                    await _fileService.DeleteAsync(newImageUrl);
+                }
+                catch
+                {
+                }
             }
 
             throw;

@@ -9,7 +9,7 @@ public interface IProductRepository
     Task<Product?> GetByIdAsync(long id);
     Task<bool> UpdateAsync(Product product);
     Task<IReadOnlyList<ProductListResponse>> GetByBranchAsync(long branchId);
-    Task<bool> AddToBranchAsync(long productId, long branchId, decimal price);
+    Task<bool> AddToBranchAsync(long productId, long branchId, decimal price, int stock);
     Task<bool> AddOfferAsync(long productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate);
     Task AddImageAsync(long productId, string imageUrl);
     Task<string?> GetMainImageUrlAsync(long productId);

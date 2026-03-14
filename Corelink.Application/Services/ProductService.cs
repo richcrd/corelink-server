@@ -29,9 +29,11 @@ public class ProductService(IProductRepository repository) : IProductService
         );
 
         var id = await _repository.CreateAsync(entity);
-
         entity.Id = id;
-        
+
+        // Associate to branch
+        await _repository.AddToBranchAsync(id, request.BranchId, request.Price, request.Stock);
+
         return Answer<ProductResponse>.Ok(ProductMapper.ToResponse(entity));
     }
 
@@ -91,7 +93,11 @@ public class ProductService(IProductRepository repository) : IProductService
         if (request.Price < 0)
             return AnswerBase.BadRequest("Price cannot be negative");
 
-        var added = await _repository.AddToBranchAsync(productId, request.BranchId, request.Price);
+        var product = await _repository.GetByIdAsync(productId);
+        if (product == null)
+            return AnswerBase.NotFound("Product not found");
+
+        var added = await _repository.AddToBranchAsync(productId, request.BranchId, request.Price, 0);
 
         return !added
             ? AnswerBase.Error("Could not add product to branch")

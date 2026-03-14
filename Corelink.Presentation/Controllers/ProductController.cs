@@ -53,9 +53,30 @@ public sealed class ProductController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
+    public async Task<IActionResult> Create([FromForm] CreateProductRequest request, IFormFile? image)
     {
-        return HandleResponse(await _service.CreateAsync(request));
+        var response = await _service.CreateAsync(request);
+
+        if (response.Success && response.Response != null)
+        {
+            if (image != null)
+            {
+                using var stream = image.OpenReadStream();
+
+                var url = await handler.HandleAsync(
+                    stream,
+                    image.FileName,
+                    image.ContentType);
+
+                await _service.AddImageAsync(response.Response.Id, url);
+            }
+            
+            // Re-fetch object to include populated branches/images
+            var finalProduct = await _service.GetByIdAsync(response.Response.Id);
+            return HandleResponse(finalProduct);
+        }
+
+        return HandleResponse(response);
     }
 
     [HttpPatch("{id:long}")]

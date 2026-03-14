@@ -48,18 +48,28 @@ public class SupabaseService : IFileService
     
     public async Task DeleteAsync(string publicUrl)
     {
-        var fileName = Path.GetFileName(publicUrl);
+        if (string.IsNullOrWhiteSpace(publicUrl)) return;
+        
+        var fileName = Path.GetFileName(Uri.UnescapeDataString(publicUrl));
 
         var request = new HttpRequestMessage(
             HttpMethod.Delete,
-            $"{_baseUrl}/storage/v1/object/corelink-images/{fileName}");
+            $"{_baseUrl}/storage/v1/object/{_bucket}");
 
         request.Headers.Add("Authorization", $"Bearer {_serviceKey}");
         request.Headers.Add("apikey", _serviceKey);
 
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { prefixes = new[] { fileName } }),
+            System.Text.Encoding.UTF8,
+            "application/json");
+
         var response = await _httpClient.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
-            throw new Exception("Failed to delete image from Supabase");
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to delete image from Supabase: {errorBody}");
+        }
     }
 }

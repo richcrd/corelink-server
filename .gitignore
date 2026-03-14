@@ -7,3 +7,4 @@ riderModule.iml
 .idea
 .env
 **/.env
+.DS_Store

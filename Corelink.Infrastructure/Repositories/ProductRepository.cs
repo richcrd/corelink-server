@@ -112,8 +112,9 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
     {
         const string sql = """
                            SELECT
-                                p.id,
-                                p.name,
+                                p.id as Id,
+                                pb.id as BranchProductId,
+                                p.name as Name,
                                 pb.price as OriginalPrice,
                                 po.offer_price as OfferPrice,
                                 img.url as ImageUrl,
@@ -229,5 +230,66 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                           """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         return await connection.QueryFirstOrDefaultAsync<string>(sql, new { ProductId = productId });
+    }
+
+    public async Task<(IReadOnlyList<ProductListResponse> Items, int TotalCount)> GetProductsByCategoryAndBranchAsync(long categoryId, long branchId, int page, int pageSize)
+    {
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+
+        const string countSql = """
+                            SELECT COUNT(*)
+                            FROM product p
+                            INNER JOIN branch_product bp ON p.id = bp.product_id
+                            WHERE p.category_id = @CategoryId
+                              AND bp.branch_id = @BranchId
+                              AND p.status = 'ACTIVE'
+                              AND bp.status = 'ACTIVE'
+                        """;
+
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { CategoryId = categoryId, BranchId = branchId });
+
+        if (totalCount == 0)
+        {
+            return (Array.Empty<ProductListResponse>(), 0);
+        }
+
+        const string sql = """
+                            SELECT
+                                p.id as Id,
+                                bp.id as BranchProductId,
+                                p.name as Name,
+                                img.url as ImageUrl,
+                                bp.price as OriginalPrice,
+                                po.offer_price as OfferPrice,
+                                CASE
+                                    WHEN po.id IS NOT NULL
+                                        AND po.status = 'ACTIVE'
+                                        AND (po.start_date is NULL OR po.start_date <= NOW())
+                                        AND (po.end_date is NULL OR po.end_date >= NOW())
+                                    THEN po.offer_price
+                                    ELSE bp.price
+                                END AS FinalPrice
+                            FROM product p
+                            INNER JOIN branch_product bp ON p.id = bp.product_id
+                            LEFT JOIN product_offer po ON po.branch_product_id = bp.id
+                            LEFT JOIN product_image pi ON pi.product_id = p.id
+                            LEFT JOIN image img ON img.id = pi.image_id
+                            WHERE p.category_id = @CategoryId
+                              AND bp.branch_id = @BranchId
+                              AND p.status = 'ACTIVE'
+                              AND bp.status = 'ACTIVE'
+                            ORDER BY p.name ASC
+                            OFFSET @Offset LIMIT @Limit;
+                        """;
+                        
+        var offset = (page - 1) * pageSize;
+        var products = await connection.QueryAsync<ProductListResponse>(sql, new { 
+            CategoryId = categoryId, 
+            BranchId = branchId, 
+            Offset = offset, 
+            Limit = pageSize 
+        });
+        
+        return (products.AsList(), totalCount);
     }
 }

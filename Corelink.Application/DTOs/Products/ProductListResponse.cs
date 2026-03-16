@@ -3,6 +3,7 @@ namespace Corelink.Application.Contracts.Products;
 public sealed class ProductListResponse
 {
     public long Id { get; init; }
+    public long BranchProductId { get; init; }
     public string Name { get; init; } = default!;
 
     public string? ImageUrl { get; init; }

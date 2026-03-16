@@ -16,6 +16,16 @@ public sealed class ExceptionMiddleware(
         {
             await next(context);
         }
+        catch (KeyNotFoundException ex)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = 404;
+
+            var message = environment.IsDevelopment() ? ex.Message : "Not found";
+            var response = Answer<string>.NotFound(message);
+
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        }
         catch (Exception ex)
         {
             logger.LogError(

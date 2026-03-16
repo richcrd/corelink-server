@@ -2,6 +2,7 @@ using corelink_server.Common;
 using Corelink.Application.Abstractions.Services;
 using Corelink.Application.Contracts.Products;
 using Corelink.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Corelink.Presentation.Controllers;
@@ -15,6 +16,7 @@ public sealed class ProductController(
 {
     private readonly IProductService _service = service;
 
+    [Authorize]
     [HttpPost("{id:long}/image")]
     public async Task<IActionResult> UploadImage(long id, IFormFile file)
     {
@@ -52,6 +54,7 @@ public sealed class ProductController(
         return HandleResponse(await _service.GetByIdAsync(id));
     }
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create([FromForm] CreateProductRequest request, IFormFile? image)
     {
@@ -79,21 +82,30 @@ public sealed class ProductController(
         return HandleResponse(response);
     }
 
+    [Authorize]
     [HttpPatch("{id:long}")]
     public async Task<IActionResult> Patch(long id, [FromBody] PatchProductRequest request)
     {
         return HandleResponse(await _service.UpdateAsync(id, request));
     }
 
+    [Authorize]
     [HttpPost("{id:long}/branch")]
     public async Task<IActionResult> AddToBranch(long id, [FromBody] AddProductToBranchRequest request)
     {
         return HandleResponse(await _service.AddToBranchAsync(id, request));
     }
     
+    [Authorize]
     [HttpPost("branch/{productBranchId:long}/offer")]
     public async Task<IActionResult> AddOffer(long productBranchId, [FromBody] CreateProductOfferRequest request)
     {
         return HandleResponse(await service.AddOfferAsync(productBranchId, request));
+    }
+    
+    [HttpGet("branch/{branchId:long}/category/{categoryId:long}")]
+    public async Task<IActionResult> GetByCategoryAndBranch(long branchId, long categoryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        return HandleResponse(await _service.GetProductsByCategoryAndBranchAsync(categoryId, branchId, page, pageSize));
     }
 }

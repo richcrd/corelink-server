@@ -13,4 +13,5 @@ public interface IProductService
     Task<AnswerBase> AddOfferAsync(long productBranchId, CreateProductOfferRequest request);
     Task<AnswerBase> AddImageAsync(long productId, string imageUrl);
     Task<Answer<string?>> GetMainImageUrlAsync(long productId);
+    Task<Answer<PagedResponse<ProductListResponse>>> GetProductsByCategoryAndBranchAsync(long categoryId, long branchId, int page, int pageSize);
 }

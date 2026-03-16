@@ -3,6 +3,7 @@ using corelink_server.Common;
 using Corelink.Application.Abstractions.Services;
 using Corelink.Application.Contracts;
 using Corelink.Application.Contracts.ProductCategory;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CreateProductCategoryModel = corelink_server.Models.CreateProductCategoryModel;
 
@@ -18,6 +19,7 @@ public sealed class ProductCategoryController(IProductCategoryService service) :
         return HandleResponse(await service.GetAllAsync());
     }
 
+    [Authorize]
     [HttpPost]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Create([FromForm] CreateProductCategoryModel request)
@@ -35,12 +37,14 @@ public sealed class ProductCategoryController(IProductCategoryService service) :
         return HandleResponse(await service.CreateAsync(command));
     }
 
+    [Authorize]
     [HttpPatch("{id:long}")]
     public async Task<IActionResult> Patch(long id, [FromBody] PatchProductCategoryRequest request)
     {
         return HandleResponse(await service.UpdateAsync(id, request));
     }
 
+    [Authorize]
     [HttpPut("{id:long}/image")]
     public async Task<IActionResult> UpdateImage(long id, IFormFile? file)
     {

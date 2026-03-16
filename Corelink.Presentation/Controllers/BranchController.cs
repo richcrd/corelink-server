@@ -1,6 +1,7 @@
 using corelink_server.Common;
 using Corelink.Application.Abstractions.Services;
 using Corelink.Application.Contracts.Locations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Corelink.Presentation.Controllers;
@@ -9,6 +10,7 @@ namespace Corelink.Presentation.Controllers;
 [Route("service/[controller]")]
 public sealed class BranchController(IBranchService service) : ResponseBase
 {
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBranchRequest request)
     {

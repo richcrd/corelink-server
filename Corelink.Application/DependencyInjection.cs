@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<UploadImageHandler>();
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ICartService, CartService>();
         return services;
     }
 }

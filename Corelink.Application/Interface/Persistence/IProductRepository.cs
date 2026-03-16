@@ -13,4 +13,5 @@ public interface IProductRepository
     Task<bool> AddOfferAsync(long productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate);
     Task AddImageAsync(long productId, string imageUrl);
     Task<string?> GetMainImageUrlAsync(long productId);
+    Task<(IReadOnlyList<ProductListResponse> Items, int TotalCount)> GetProductsByCategoryAndBranchAsync(long categoryId, long branchId, int page, int pageSize);
 }

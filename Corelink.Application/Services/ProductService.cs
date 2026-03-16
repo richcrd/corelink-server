@@ -146,4 +146,22 @@ public class ProductService(IProductRepository repository) : IProductService
         var url = await _repository.GetMainImageUrlAsync(productId);
         return Answer<string?>.Ok(url);
     }
+
+    public async Task<Answer<PagedResponse<ProductListResponse>>> GetProductsByCategoryAndBranchAsync(long categoryId, long branchId, int page, int pageSize)
+    {
+        if (categoryId <= 0)
+            return Answer<PagedResponse<ProductListResponse>>.BadRequest("CategoryId is required");
+        
+        if (branchId <= 0)
+            return Answer<PagedResponse<ProductListResponse>>.BadRequest("BranchId is required");
+            
+        if (page <= 0) page = 1;
+        if (pageSize <= 0) pageSize = 10;
+        if (pageSize > 100) pageSize = 100; // Hard limit
+
+        var (items, totalCount) = await _repository.GetProductsByCategoryAndBranchAsync(categoryId, branchId, page, pageSize);
+        
+        var pagedResponse = new PagedResponse<ProductListResponse>(items, totalCount, page, pageSize);
+        return Answer<PagedResponse<ProductListResponse>>.Ok(pagedResponse);
+    }
 }

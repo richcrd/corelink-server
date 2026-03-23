@@ -1,6 +1,28 @@
 @corelink_server_HostAddress = http://localhost:5132
 
-GET {{corelink_server_HostAddress}}/weatherforecast/
+###
+
+GET {{corelink_server_HostAddress}}/api/db/ping
+Accept: application/json
+
+###
+
+POST {{corelink_server_HostAddress}}/api/persons
+Content-Type: application/json
+Accept: application/json
+
+{
+	"firstName": "Richard",
+	"lastName": "Rodriguez",
+	"email": "richard.rodriguez@gmail.com",
+	"locationId": "00000000-0000-0000-0000-000000000000",
+	"phoneNumber": "+505 88034284",
+	"address": "Ciudad Sandino 505"
+}
+
+###
+
+GET {{corelink_server_HostAddress}}/api/persons/00000000-0000-0000-0000-000000000000
 Accept: application/json
 
 ###

@@ -47,6 +47,8 @@ public static class DependencyInjection
         services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<ICheckoutRepository, CheckoutRepository>();
+        services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

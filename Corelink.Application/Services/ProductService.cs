@@ -69,7 +69,7 @@ public class ProductService(IProductRepository repository) : IProductService
         if (entity is null)
             return Answer<ProductResponse>.NotFound("Product not found");
         
-        if (request.Name is null && request.Description is null)
+        if (request.Name is null && request.Description is null && request.Price is null && request.Stock is null)
             return Answer<ProductResponse>.BadRequest("At least one field must be provided");
 
         if (request.Name is not null)
@@ -80,9 +80,15 @@ public class ProductService(IProductRepository repository) : IProductService
 
         var updated = await _repository.UpdateAsync(entity);
 
-        return !updated
-            ? Answer<ProductResponse>.Error("Update failed")
-            : Answer<ProductResponse>.Ok(ProductMapper.ToResponse(entity));
+        if (!updated)
+            return Answer<ProductResponse>.Error("Update failed");
+
+        if (request.BranchId.HasValue && (request.Price.HasValue || request.Stock.HasValue))
+        {
+            await _repository.UpdateBranchProductAsync(id, request.BranchId.Value, request.Price, request.Stock);
+        }
+
+        return Answer<ProductResponse>.Ok(ProductMapper.ToResponse(entity));
     }
 
     public async Task<AnswerBase> AddToBranchAsync(long productId, AddProductToBranchRequest request)

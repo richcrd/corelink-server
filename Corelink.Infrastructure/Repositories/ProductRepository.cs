@@ -117,7 +117,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                 p.name as Name,
                                 pb.price as OriginalPrice,
                                 po.offer_price as OfferPrice,
-                                img.url as ImageUrl,
+                                (SELECT img.url FROM product_image pi INNER JOIN image img ON img.id = pi.image_id WHERE pi.product_id = p.id LIMIT 1) as ImageUrl,
                                 CASE
                                     WHEN po.id IS NOT NULL
                                         AND po.status = 'ACTIVE'
@@ -129,8 +129,6 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                            FROM product p
                            INNER JOIN branch_product pb ON pb.product_id = p.id
                            LEFT JOIN product_offer po ON po.branch_product_id = pb.id
-                           LEFT JOIN product_image pi ON pi.product_id = p.id
-                           LEFT JOIN image img ON img.id = pi.image_id
                            WHERE pb.branch_id = @BranchId
                            AND p.status = 'ACTIVE'
                            AND pb.status = 'ACTIVE'
@@ -159,6 +157,21 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         });
 
         return rows > 0;
+    }
+
+    public async Task<bool> UpdateBranchProductAsync(long productId, long branchId, decimal? price, int? stock)
+    {
+        if (price is null && stock is null) return true;
+
+        const string sql = """
+                           UPDATE branch_product 
+                           SET price = COALESCE(@Price, price),
+                               stock = COALESCE(@Stock, stock)
+                           WHERE product_id = @ProductId AND branch_id = @BranchId;
+                           """;
+        
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.ExecuteAsync(sql, new { ProductId = productId, BranchId = branchId, Price = price, Stock = stock }) > 0;
     }
 
     public async Task<bool> AddOfferAsync(long productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate)
@@ -258,7 +271,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                 p.id as Id,
                                 bp.id as BranchProductId,
                                 p.name as Name,
-                                img.url as ImageUrl,
+                                (SELECT img.url FROM product_image pi INNER JOIN image img ON img.id = pi.image_id WHERE pi.product_id = p.id LIMIT 1) as ImageUrl,
                                 bp.price as OriginalPrice,
                                 po.offer_price as OfferPrice,
                                 CASE
@@ -272,8 +285,6 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                             FROM product p
                             INNER JOIN branch_product bp ON p.id = bp.product_id
                             LEFT JOIN product_offer po ON po.branch_product_id = bp.id
-                            LEFT JOIN product_image pi ON pi.product_id = p.id
-                            LEFT JOIN image img ON img.id = pi.image_id
                             WHERE p.category_id = @CategoryId
                               AND bp.branch_id = @BranchId
                               AND p.status = 'ACTIVE'

@@ -84,9 +84,30 @@ public sealed class ProductController(
 
     [Authorize]
     [HttpPatch("{id:long}")]
-    public async Task<IActionResult> Patch(long id, [FromBody] PatchProductRequest request)
+    public async Task<IActionResult> Patch(long id, [FromForm] PatchProductRequest request, IFormFile? image)
     {
-        return HandleResponse(await _service.UpdateAsync(id, request));
+        var response = await _service.UpdateAsync(id, request);
+        
+        if (response.Success)
+        {
+            if (image != null)
+            {
+                using var stream = image.OpenReadStream();
+
+                var url = await handler.HandleAsync(
+                    stream,
+                    image.FileName,
+                    image.ContentType);
+
+                await _service.AddImageAsync(id, url);
+            }
+            
+            // Re-fetch to include potential image or branch updates
+            var finalProduct = await _service.GetByIdAsync(id);
+            return HandleResponse(finalProduct);
+        }
+        
+        return HandleResponse(response);
     }
 
     [Authorize]

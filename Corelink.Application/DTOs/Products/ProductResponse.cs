@@ -6,6 +6,6 @@ public record ProductResponse(
     string? Description,
     long CategoryId,
     string Status,
-    IReadOnlyList<ProductImageResponse> Images,
+    string? ImageUrl,
     IReadOnlyList<ProductBranchResponse> Branches
     );

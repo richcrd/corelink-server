@@ -14,19 +14,9 @@ public static class ProductMapper
             product.Description,
             product.CategoryId,
             product.Status.ToString(),
-            product.Images.Select(ToImageResponse).ToList(),
+            product.ImageUrl,
             product.Branches.Select(ToBranchResponse).ToList()
-            );
-    }
-
-    private static ProductImageResponse ToImageResponse(ProductImage image)
-    {
-        return new ProductImageResponse(
-            image.Id,
-            image.Url,
-            image.IsMain,
-            image.Position
-            );
+        );
     }
 
     private static ProductBranchResponse ToBranchResponse(ProductBranch branch)
@@ -38,7 +28,7 @@ public static class ProductMapper
             branch.GetFinalPrice(),
             branch.Status.ToString(),
             branch.Offers.Select(ToOfferResponse).ToList()
-            );
+        );
     }
 
     private static ProductOfferResponse ToOfferResponse(ProductOffer offer)

@@ -5,18 +5,16 @@ namespace Corelink.Domain.Entities;
 
 public class Product : BaseEntity
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public string? Description { get; set; }
     public long CategoryId { get; set; }
     public StatusEnum Status { get; set; } = StatusEnum.ACTIVE;
 
-    private readonly List<ProductImage> _images = new();
-    public IReadOnlyCollection<ProductImage> Images => _images;
     
     private readonly List<ProductBranch> _branches = new();
     public IReadOnlyCollection<ProductBranch> Branches => _branches;
     
-    private Product() {}
+    private Product() { Name = string.Empty; }
 
     public Product(string name, string? description, long categoryId)
     {
@@ -33,12 +31,6 @@ public class Product : BaseEntity
         _branches.Add(branch);
     }
 
-    public void AddImage(ProductImage image)
-    {
-        if (image.IsMain && _images.Any(i => i.IsMain))
-            throw new InvalidOperationException("There is already a main image");
-        _images.Add(image);
-    }
 
     public void Deactivate()
     {
@@ -56,5 +48,14 @@ public class Product : BaseEntity
     public void UpdateDescription(string? description)
     {
         Description = description?.Trim();
+    }
+
+    public string? ImageUrl { get; private set; }
+    public long? ImageId { get; private set; }
+
+    public void SetImage(long imageId, string imageUrl)
+    {
+        ImageId = imageId;
+        ImageUrl = imageUrl;
     }
 }

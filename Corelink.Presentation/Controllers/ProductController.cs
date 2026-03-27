@@ -16,26 +16,7 @@ public sealed class ProductController(
 {
     private readonly IProductService _service = service;
 
-    [Authorize]
-    [HttpPost("{id:long}/image")]
-    public async Task<IActionResult> UploadImage(long id, IFormFile file)
-    {
-        if (file is null)
-            return BadRequest("File is required");
-        
-        using var stream = file.OpenReadStream();
-
-        var url = await handler.HandleAsync(
-            stream,
-            file.FileName,
-            file.ContentType);
-
-        var result = await _service.AddImageAsync(id, url);
-
-        return HandleResponse(result);
-    }
-
-    [HttpGet("{id:long}/image")]
+    [HttpGet("{id:long}")]
     public async Task<IActionResult> GetMainImage(long id)
     {
         var result = await _service.GetMainImageUrlAsync(id);
@@ -59,26 +40,14 @@ public sealed class ProductController(
     public async Task<IActionResult> Create([FromForm] CreateProductRequest request, IFormFile? image)
     {
         var response = await _service.CreateAsync(request);
-
-        if (response.Success && response.Response != null)
+        if (response.Success && response.Response != null && image != null)
         {
-            if (image != null)
-            {
-                using var stream = image.OpenReadStream();
-
-                var url = await handler.HandleAsync(
-                    stream,
-                    image.FileName,
-                    image.ContentType);
-
-                await _service.AddImageAsync(response.Response.Id, url);
-            }
-            
-            // Re-fetch object to include populated branches/images
+            using var stream = image.OpenReadStream();
+            var url = await handler.HandleAsync(stream, image.FileName, image.ContentType);
+            await _service.AddOrReplaceImageAsync(response.Response.Id, url);
             var finalProduct = await _service.GetByIdAsync(response.Response.Id);
             return HandleResponse(finalProduct);
         }
-
         return HandleResponse(response);
     }
 
@@ -87,30 +56,17 @@ public sealed class ProductController(
     public async Task<IActionResult> Patch(long id, [FromForm] PatchProductRequest request, IFormFile? image)
     {
         var response = await _service.UpdateAsync(id, request);
-        
-        if (response.Success)
+        if (response.Success && image != null)
         {
-            if (image != null)
-            {
-                using var stream = image.OpenReadStream();
-
-                var url = await handler.HandleAsync(
-                    stream,
-                    image.FileName,
-                    image.ContentType);
-
-                await _service.AddImageAsync(id, url);
-            }
-            
-            // Re-fetch to include potential image or branch updates
+            using var stream = image.OpenReadStream();
+            var url = await handler.HandleAsync(stream, image.FileName, image.ContentType);
+            await _service.AddOrReplaceImageAsync(id, url);
             var finalProduct = await _service.GetByIdAsync(id);
             return HandleResponse(finalProduct);
         }
-        
         return HandleResponse(response);
     }
 
-    [Authorize]
     [HttpPost("{id:long}/branch")]
     public async Task<IActionResult> AddToBranch(long id, [FromBody] AddProductToBranchRequest request)
     {
@@ -128,5 +84,17 @@ public sealed class ProductController(
     public async Task<IActionResult> GetByCategoryAndBranch(long branchId, long categoryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         return HandleResponse(await _service.GetProductsByCategoryAndBranchAsync(categoryId, branchId, page, pageSize));
+    }
+
+    [HttpGet("branch/{branchId:long}/top")]
+    public async Task<IActionResult> GetTopProducts(long branchId, [FromQuery] int limit = 5)
+    {
+        return HandleResponse(await _service.GetTopProductsByBranchAsync(branchId, limit));
+    }
+
+    [HttpGet("branch/{branchId:long}/top-with-price")]
+    public async Task<IActionResult> GetTopProductsWithPrice(long branchId, [FromQuery] int limit = 5)
+    {
+        return HandleResponse(await _service.GetTopProductsWithPriceByBranchAsync(branchId, limit));
     }
 }

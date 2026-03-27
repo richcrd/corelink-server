@@ -82,14 +82,7 @@ public sealed class CartRepository(IDbConnectionFactory connectionFactory) : ICa
             FROM cart_detail cd
             INNER JOIN branch_product bp ON bp.id = cd.branch_product_id
             INNER JOIN product p ON p.id = bp.product_id
-            LEFT JOIN LATERAL (
-                SELECT img.url
-                FROM product_image pi
-                INNER JOIN image img ON img.id = pi.image_id
-                WHERE pi.product_id = p.id
-                ORDER BY pi.created_at ASC
-                LIMIT 1
-            ) img ON TRUE
+            LEFT JOIN image img ON img.id = p.image_id
             WHERE cd.cart_id = @CartId
             ORDER BY cd.id ASC;
             """;
@@ -126,14 +119,7 @@ public sealed class CartRepository(IDbConnectionFactory connectionFactory) : ICa
             FROM cart_detail cd
             INNER JOIN branch_product bp ON bp.id = cd.branch_product_id
             INNER JOIN product p ON p.id = bp.product_id
-            LEFT JOIN LATERAL (
-                SELECT img.url
-                FROM product_image pi
-                INNER JOIN image img ON img.id = pi.image_id
-                WHERE pi.product_id = p.id
-                ORDER BY pi.created_at ASC
-                LIMIT 1
-            ) img ON TRUE
+            LEFT JOIN image img ON img.id = p.image_id
             WHERE cd.cart_id = @CartId
               AND cd.branch_product_id = @BranchProductId
             LIMIT 1;

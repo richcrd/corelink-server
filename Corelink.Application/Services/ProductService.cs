@@ -23,10 +23,13 @@ public class ProductService(IProductRepository repository) : IProductService
             return error;
 
         var entity = new Product(
-            Validation.Trim(request.Name),
-            request.Description,
-            request.CategoryId
-        );
+            name: Validation.Trim(request.Name),
+            description: request.Description,
+            categoryId: request.CategoryId
+        )
+        {
+            Name = Validation.Trim(request.Name)
+        };
 
         var id = await _repository.CreateAsync(entity);
         entity.Id = id;
@@ -126,7 +129,7 @@ public class ProductService(IProductRepository repository) : IProductService
             : AnswerBase.Ok();
     }
 
-    public async Task<AnswerBase> AddImageAsync(long productId, string imageUrl)
+    public async Task<AnswerBase> AddOrReplaceImageAsync(long productId, string imageUrl)
     {
         if (productId <= 0)
             return AnswerBase.BadRequest("Product id is required");
@@ -135,12 +138,11 @@ public class ProductService(IProductRepository repository) : IProductService
             return AnswerBase.BadRequest("Image is required");
         
         var product = await _repository.GetByIdAsync(productId);
-        
+
         if (product is null)
             return AnswerBase.NotFound("Product not found");
 
-        await _repository.AddImageAsync(productId, imageUrl);
-        
+        await _repository.AddOrReplaceImageAsync(productId, imageUrl);
         return AnswerBase.Ok();
     }
 
@@ -169,5 +171,23 @@ public class ProductService(IProductRepository repository) : IProductService
         
         var pagedResponse = new PagedResponse<ProductListResponse>(items, totalCount, page, pageSize);
         return Answer<PagedResponse<ProductListResponse>>.Ok(pagedResponse);
+    }
+
+    public async Task<Answer<IReadOnlyList<TopProductResponse>>> GetTopProductsByBranchAsync(long branchId, int limit = 5)
+    {
+        if (branchId <= 0)
+            return Answer<IReadOnlyList<TopProductResponse>>.BadRequest("La sucursal es requerida.");
+
+        var products = await _repository.GetTopProductsByBranchAsync(branchId, limit);
+        return Answer<IReadOnlyList<TopProductResponse>>.Ok(products);
+    }
+
+    public async Task<Answer<IReadOnlyList<TopProductWithPriceResponse>>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5)
+    {
+        if (branchId <= 0)
+            return Answer<IReadOnlyList<TopProductWithPriceResponse>>.BadRequest("La sucursal es requerida.");
+
+        var products = await _repository.GetTopProductsWithPriceByBranchAsync(branchId, limit);
+        return Answer<IReadOnlyList<TopProductWithPriceResponse>>.Ok(products);
     }
 }

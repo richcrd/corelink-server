@@ -7,8 +7,40 @@ using Dapper;
 
 namespace Corelink.Infrastructure.Repositories;
 
-public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : IProductRepository
+public sealed class ProductRepository : IProductRepository
 {
+    private readonly IDbConnectionFactory connectionFactory;
+    public ProductRepository(IDbConnectionFactory connectionFactory)
+    {
+        this.connectionFactory = connectionFactory;
+    }
+
+    public async Task<bool> AddToBranchAsync(long productId, long branchId, decimal price, int stock)
+    {
+        const string sql = @"INSERT INTO branch_product (product_id, branch_id, price, stock, status)
+                             VALUES (@ProductId, @BranchId, @Price, @Stock, 'ACTIVE');";
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        var rows = await connection.ExecuteAsync(sql, new
+        {
+            ProductId = productId,
+            BranchId = branchId,
+            Price = price,
+            Stock = stock
+        });
+        return rows > 0;
+    }
+
+    public async Task<bool> UpdateBranchProductAsync(long productId, long branchId, decimal? price, int? stock)
+    {
+        if (price is null && stock is null) return true;
+
+        const string sql = @"UPDATE branch_product 
+                             SET price = COALESCE(@Price, price),
+                                 stock = COALESCE(@Stock, stock)
+                             WHERE product_id = @ProductId AND branch_id = @BranchId;";
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        return await connection.ExecuteAsync(sql, new { ProductId = productId, BranchId = branchId, Price = price, Stock = stock }) > 0;
+    }
     public async Task<long> CreateAsync(Product product)
     {
         const string sql = """
@@ -42,19 +74,6 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         var product = await connection.QueryFirstOrDefaultAsync<Product>(productSql, new { Id = id });
         if (product is null)
             return null;
-
-        const string imagesSql = """
-                                 SELECT
-                                     img.id,
-                                     img.url
-                                 FROM product_image pi
-                                 INNER JOIN image img on img.id = pi.image_id
-                                 WHERE pi.product_id = @ProductId;
-                                 """;
-        var images = await connection.QueryAsync<ProductImage>(imagesSql, new { ProductId = id });
-        
-        foreach (var img in images)
-            product.AddImage(img);
 
         const string branchesSql = """
                                    SELECT id,
@@ -110,68 +129,54 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
 
     public async Task<IReadOnlyList<ProductListResponse>> GetByBranchAsync(long branchId)
     {
-        const string sql = """
-                           SELECT
-                                p.id as Id,
-                                pb.id as BranchProductId,
-                                p.name as Name,
-                                pb.price as OriginalPrice,
-                                po.offer_price as OfferPrice,
-                                (SELECT img.url FROM product_image pi INNER JOIN image img ON img.id = pi.image_id WHERE pi.product_id = p.id LIMIT 1) as ImageUrl,
-                                CASE
-                                    WHEN po.id IS NOT NULL
-                                        AND po.status = 'ACTIVE'
-                                        AND (po.start_date is NULL OR po.start_date <= NOW())
-                                        AND (po.end_date is NULL OR po.end_date >= NOW())
-                                    THEN po.offer_price
-                                    ELSE pb.price
-                                END AS FinalPrice
-                           FROM product p
-                           INNER JOIN branch_product pb ON pb.product_id = p.id
-                           LEFT JOIN product_offer po ON po.branch_product_id = pb.id
-                           WHERE pb.branch_id = @BranchId
-                           AND p.status = 'ACTIVE'
-                           AND pb.status = 'ACTIVE'
-                           ORDER BY p.name;
-                           """;
+        const string sql = @"SELECT 
+            p.id AS Id,
+            bp.id AS BranchProductId,
+            p.name AS Name,
+            img.url AS ImageUrl,
+            bp.price AS OriginalPrice,
+            (
+                SELECT po.offer_price
+                FROM product_offer po
+                WHERE po.branch_product_id = bp.id
+                    AND po.status = 'ACTIVE'
+                    AND (po.start_date IS NULL OR po.start_date <= NOW())
+                    AND (po.end_date IS NULL OR po.end_date >= NOW())
+                ORDER BY po.start_date DESC
+                LIMIT 1
+            ) AS OfferPrice,
+            CASE
+                WHEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                ) IS NOT NULL
+                THEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                )
+                ELSE bp.price
+            END AS FinalPrice
+        FROM product p
+        INNER JOIN branch_product bp ON p.id = bp.product_id
+        LEFT JOIN image img ON img.id = p.image_id
+        WHERE bp.branch_id = @BranchId
+        ORDER BY FinalPrice DESC;";
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-
         var result = await connection.QueryAsync<ProductListResponse>(sql, new { BranchId = branchId });
-        return result.ToList();
-    }
-
-    public async Task<bool> AddToBranchAsync(long productId, long branchId, decimal price, int stock)
-    {
-        const string sql = """
-                           INSERT INTO branch_product (product_id, branch_id, price, stock, status)
-                           VALUES (@ProductId, @BranchId, @Price, @Stock, 'ACTIVE');
-                           """;
-        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        var rows = await connection.ExecuteAsync(sql, new
-        {
-            ProductId = productId,
-            BranchId = branchId,
-            Price = price,
-            Stock = stock
-        });
-
-        return rows > 0;
-    }
-
-    public async Task<bool> UpdateBranchProductAsync(long productId, long branchId, decimal? price, int? stock)
-    {
-        if (price is null && stock is null) return true;
-
-        const string sql = """
-                           UPDATE branch_product 
-                           SET price = COALESCE(@Price, price),
-                               stock = COALESCE(@Stock, stock)
-                           WHERE product_id = @ProductId AND branch_id = @BranchId;
-                           """;
-        
-        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        return await connection.ExecuteAsync(sql, new { ProductId = productId, BranchId = branchId, Price = price, Stock = stock }) > 0;
+        return result.AsList();
     }
 
     public async Task<bool> AddOfferAsync(long productBranchId, decimal offerPrice, DateTime? startDate, DateTime? endDate)
@@ -194,53 +199,33 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         return rows > 0;
     }
 
-    public async Task AddImageAsync(long productId, string imageUrl)
+    public async Task<bool> AddOrReplaceImageAsync(long productId, string imageUrl)
     {
-        const string insertImageSql = """
-                                      INSERT INTO image (url)
-                                      VALUES (@Url)
-                                      RETURNING id;
-                                      """;
-        const string relationSql = """
-                                   INSERT INTO product_image
-                                   (product_id, image_id)
-                                   VALUES (@ProductId, @ImageId);
-                                   """;
-
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         await using var transaction = connection.BeginTransaction();
 
-        try
-        {
-            var imageId = await connection.ExecuteScalarAsync<long>(insertImageSql, new
-            {
-                Url = imageUrl,
-            }, transaction);
+        var oldImageId = await connection.ExecuteScalarAsync<long?>("SELECT image_id FROM product WHERE id = @ProductId", new { ProductId = productId }, transaction);
 
-            await connection.ExecuteAsync(relationSql, new
-            {
-                ProductId = productId,
-                ImageId = imageId
-            }, transaction);
-            
-            transaction.Commit();
-        }
-        catch
-        {
-            transaction.Rollback();
-            throw;
-        }
+        var imageId = await connection.ExecuteScalarAsync<long>("INSERT INTO image (url) VALUES (@Url) RETURNING id;", new { Url = imageUrl }, transaction);
+
+        await connection.ExecuteAsync("UPDATE product SET image_id = @ImageId WHERE id = @ProductId", new { ImageId = imageId, ProductId = productId }, transaction);
+
+        if (oldImageId.HasValue)
+            await connection.ExecuteAsync("DELETE FROM image WHERE id = @ImageId", new { ImageId = oldImageId.Value }, transaction);
+
+        await transaction.CommitAsync();
+        return true;
     }
 
     public async Task<string?> GetMainImageUrlAsync(long productId)
     {
         const string sql = """
-                          SELECT img.url
-                          FROM product_image pi
-                          INNER JOIN image img ON img.id = pi.image_id
-                          WHERE pi.product_id = @ProductId
-                          LIMIT 1;
-                          """;
+                  SELECT img.url
+                  FROM product p
+                  LEFT JOIN image img ON img.id = p.image_id
+                  WHERE p.id = @ProductId
+                  LIMIT 1;
+                  """;
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         return await connection.QueryFirstOrDefaultAsync<string>(sql, new { ProductId = productId });
     }
@@ -271,7 +256,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                                 p.id as Id,
                                 bp.id as BranchProductId,
                                 p.name as Name,
-                                (SELECT img.url FROM product_image pi INNER JOIN image img ON img.id = pi.image_id WHERE pi.product_id = p.id LIMIT 1) as ImageUrl,
+                                img.url as ImageUrl,
                                 bp.price as OriginalPrice,
                                 po.offer_price as OfferPrice,
                                 CASE
@@ -285,6 +270,7 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
                             FROM product p
                             INNER JOIN branch_product bp ON p.id = bp.product_id
                             LEFT JOIN product_offer po ON po.branch_product_id = bp.id
+                            LEFT JOIN image img ON img.id = p.image_id
                             WHERE p.category_id = @CategoryId
                               AND bp.branch_id = @BranchId
                               AND p.status = 'ACTIVE'
@@ -302,5 +288,118 @@ public sealed class ProductRepository(IDbConnectionFactory connectionFactory) : 
         });
         
         return (products.AsList(), totalCount);
+    }
+
+    public async Task<IReadOnlyList<TopProductResponse>> GetTopProductsByBranchAsync(long branchId, int limit = 5)
+    {
+        const string sql = """
+            SELECT 
+                p.id AS ProductId,
+                p.name AS ProductName,
+                img.url AS ImageUrl,
+                SUM(od.quantity) AS TotalSold
+            FROM order_detail od
+            INNER JOIN branch_product bp ON od.branch_product_id = bp.id
+            INNER JOIN product p ON bp.product_id = p.id
+            LEFT JOIN image img ON img.id = p.image_id
+            WHERE bp.branch_id = @BranchId
+            GROUP BY p.id, p.name, img.url
+            ORDER BY TotalSold DESC
+            LIMIT @Limit
+            """;
+
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        var result = await connection.QueryAsync<TopProductResponse>(sql, new { BranchId = branchId, Limit = limit });
+        return result.AsList();
+    }
+
+    public async Task<IReadOnlyList<TopProductWithPriceResponse>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5)
+    {
+        const string sql = @"SELECT 
+            p.id AS Id,
+            bp.id AS BranchProductId,
+            p.name AS Name,
+            img.url AS ImageUrl,
+            bp.price AS OriginalPrice,
+            CASE
+                WHEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                ) IS NOT NULL
+                THEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                )
+                ELSE bp.price
+            END AS FinalPrice,
+            (
+                SELECT po.offer_price
+                FROM product_offer po
+                WHERE po.branch_product_id = bp.id
+                    AND po.status = 'ACTIVE'
+                    AND (po.start_date IS NULL OR po.start_date <= NOW())
+                    AND (po.end_date IS NULL OR po.end_date >= NOW())
+                ORDER BY po.start_date DESC
+                LIMIT 1
+            ) AS OfferPrice,
+            CASE
+                WHEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                ) IS NOT NULL THEN TRUE ELSE FALSE END AS HasDiscount,
+            CASE
+                WHEN (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                        AND po.status = 'ACTIVE'
+                        AND (po.start_date IS NULL OR po.start_date <= NOW())
+                        AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.start_date DESC
+                    LIMIT 1
+                ) IS NOT NULL THEN
+                    ROUND(100 * (bp.price - (
+                        SELECT po.offer_price
+                        FROM product_offer po
+                        WHERE po.branch_product_id = bp.id
+                            AND po.status = 'ACTIVE'
+                            AND (po.start_date IS NULL OR po.start_date <= NOW())
+                            AND (po.end_date IS NULL OR po.end_date >= NOW())
+                        ORDER BY po.start_date DESC
+                        LIMIT 1
+                    )) / bp.price, 2)
+                ELSE NULL
+            END AS DiscountPercentage,
+            COALESCE(SUM(od.quantity), 0) AS TotalSold
+        FROM branch_product bp
+        INNER JOIN product p ON bp.product_id = p.id
+        LEFT JOIN image img ON img.id = p.image_id
+        LEFT JOIN order_detail od ON od.branch_product_id = bp.id
+        WHERE bp.branch_id = @BranchId
+        GROUP BY p.id, bp.id, p.name, img.url, bp.price
+        ORDER BY FinalPrice DESC
+        LIMIT @Limit
+        ";
+        await using var connection = await connectionFactory.CreateOpenConnectionAsync();
+        var result = await connection.QueryAsync<TopProductWithPriceResponse>(sql, new { BranchId = branchId, Limit = limit });
+        return result.AsList();
     }
 }

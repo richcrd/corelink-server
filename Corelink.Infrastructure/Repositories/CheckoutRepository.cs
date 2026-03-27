@@ -71,39 +71,44 @@ public sealed class CheckoutRepository(IDbConnectionFactory connectionFactory) :
                 Total = total
             }, transaction);
 
-            foreach (var item in items)
+            var orderDetails = items.Select(item => new
             {
-                var subtotal = item.Price * item.Quantity;
+                OrderId = orderId,
+                BranchProductId = item.BranchProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.Price,
+                Subtotal = item.Price * item.Quantity
+            });
 
-                await connection.ExecuteAsync("""
-                    INSERT INTO order_detail (order_id, branch_product_id, quantity, unit_price, subtotal)
-                    VALUES (@OrderId, @BranchProductId, @Quantity, @UnitPrice, @Subtotal);
-                    """, new 
-                {
-                    OrderId = orderId,
-                    BranchProductId = item.BranchProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.Price,
-                    Subtotal = subtotal
-                }, transaction);
+            await connection.ExecuteAsync("""
+                INSERT INTO order_detail (order_id, branch_product_id, quantity, unit_price, subtotal)
+                VALUES (@OrderId, @BranchProductId, @Quantity, @UnitPrice, @Subtotal);
+                """, orderDetails, transaction);
 
-                await connection.ExecuteAsync("""
-                    UPDATE branch_product SET stock = stock - @Quantity WHERE id = @BranchProductId;
-                    """, new { Quantity = item.Quantity, BranchProductId = item.BranchProductId }, transaction);
+            var stockUpdates = items.Select(item => new
+            {
+                Quantity = item.Quantity,
+                BranchProductId = item.BranchProductId
+            });
 
-                await connection.ExecuteAsync("""
-                    INSERT INTO inventory_movement (branch_product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, created_by)
-                    VALUES (@BranchProductId, 'OUTBOUND', @Quantity, @StockBefore, @StockAfter, 'ORDER', @OrderId, @UserId);
-                    """, new 
-                {
-                    BranchProductId = item.BranchProductId,
-                    Quantity = item.Quantity,
-                    StockBefore = item.Stock,
-                    StockAfter = item.Stock - item.Quantity,
-                    OrderId = orderId,
-                    UserId = userId
-                }, transaction);
-            }
+            await connection.ExecuteAsync("""
+                UPDATE branch_product SET stock = stock - @Quantity WHERE id = @BranchProductId;
+                """, stockUpdates, transaction);
+
+            var movements = items.Select(item => new
+            {
+                BranchProductId = item.BranchProductId,
+                Quantity = item.Quantity,
+                StockBefore = item.Stock,
+                StockAfter = item.Stock - item.Quantity,
+                OrderId = orderId,
+                UserId = userId
+            });
+
+            await connection.ExecuteAsync("""
+                INSERT INTO inventory_movement (branch_product_id, type, quantity, stock_before, stock_after, reference_type, reference_id, created_by)
+                VALUES (@BranchProductId, 'OUTBOUND', @Quantity, @StockBefore, @StockAfter, 'ORDER', @OrderId, @UserId);
+                """, movements, transaction);
 
             await connection.ExecuteAsync("""
                 INSERT INTO payment (order_id, payment_method_id, amount, reference, status)

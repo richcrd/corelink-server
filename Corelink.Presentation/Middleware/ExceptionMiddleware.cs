@@ -26,6 +26,22 @@ public sealed class ExceptionMiddleware(
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
+        catch (InvalidOperationException ex)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = 409;
+
+            var response = Answer<string>.BadRequest(ex.Message);
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        }
+        catch (ArgumentException ex)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = 400;
+
+            var response = Answer<string>.BadRequest(ex.Message);
+            await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        }
         catch (Exception ex)
         {
             logger.LogError(

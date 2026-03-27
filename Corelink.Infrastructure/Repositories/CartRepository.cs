@@ -7,6 +7,33 @@ namespace Corelink.Infrastructure.Repositories;
 
 public sealed class CartRepository(IDbConnectionFactory connectionFactory) : ICartRepository
 {
+    private const string CartItemSelectSql = """
+        SELECT
+            cd.id,
+            cd.cart_id AS CartId,
+            cd.branch_product_id AS BranchProductId,
+            p.id AS ProductId,
+            p.name AS ProductName,
+            img.url AS ImageUrl,
+            COALESCE(
+                (
+                    SELECT po.offer_price
+                    FROM product_offer po
+                    WHERE po.branch_product_id = bp.id
+                      AND po.status = 'ACTIVE'
+                      AND (po.start_date IS NULL OR po.start_date <= NOW())
+                      AND (po.end_date IS NULL OR po.end_date >= NOW())
+                    ORDER BY po.id DESC
+                    LIMIT 1
+                ),
+                bp.price
+            ) AS Price,
+            cd.quantity AS Quantity
+        FROM cart_detail cd
+        INNER JOIN branch_product bp ON bp.id = cd.branch_product_id
+        INNER JOIN product p ON p.id = bp.product_id
+        LEFT JOIN image img ON img.id = p.image_id
+        """;
     public async Task<Cart?> GetCartByUserId(long userId)
     {
         const string sql = """
@@ -57,35 +84,7 @@ public sealed class CartRepository(IDbConnectionFactory connectionFactory) : ICa
 
     public async Task<IReadOnlyList<CartItem>> GetCartItems(long cartId)
     {
-        const string sql = """
-            SELECT
-                cd.id,
-                cd.cart_id AS CartId,
-                cd.branch_product_id AS BranchProductId,
-                p.id AS ProductId,
-                p.name AS ProductName,
-                img.url AS ImageUrl,
-                COALESCE(
-                    (
-                        SELECT po.offer_price
-                        FROM product_offer po
-                        WHERE po.branch_product_id = bp.id
-                          AND po.status = 'ACTIVE'
-                          AND (po.start_date IS NULL OR po.start_date <= NOW())
-                          AND (po.end_date IS NULL OR po.end_date >= NOW())
-                        ORDER BY po.id DESC
-                        LIMIT 1
-                    ),
-                    bp.price
-                ) AS Price,
-                cd.quantity AS Quantity
-            FROM cart_detail cd
-            INNER JOIN branch_product bp ON bp.id = cd.branch_product_id
-            INNER JOIN product p ON p.id = bp.product_id
-            LEFT JOIN image img ON img.id = p.image_id
-            WHERE cd.cart_id = @CartId
-            ORDER BY cd.id ASC;
-            """;
+        var sql = CartItemSelectSql + "\nWHERE cd.cart_id = @CartId ORDER BY cd.id ASC;";
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         var rows = await connection.QueryAsync<CartItem>(sql, new { CartId = cartId });
@@ -94,36 +93,7 @@ public sealed class CartRepository(IDbConnectionFactory connectionFactory) : ICa
 
     public async Task<CartItem?> GetCartItem(long cartId, long branchProductId)
     {
-        const string sql = """
-            SELECT
-                cd.id,
-                cd.cart_id AS CartId,
-                cd.branch_product_id AS BranchProductId,
-                p.id AS ProductId,
-                p.name AS ProductName,
-                img.url AS ImageUrl,
-                COALESCE(
-                    (
-                        SELECT po.offer_price
-                        FROM product_offer po
-                        WHERE po.branch_product_id = bp.id
-                          AND po.status = 'ACTIVE'
-                          AND (po.start_date IS NULL OR po.start_date <= NOW())
-                          AND (po.end_date IS NULL OR po.end_date >= NOW())
-                        ORDER BY po.id DESC
-                        LIMIT 1
-                    ),
-                    bp.price
-                ) AS Price,
-                cd.quantity AS Quantity
-            FROM cart_detail cd
-            INNER JOIN branch_product bp ON bp.id = cd.branch_product_id
-            INNER JOIN product p ON p.id = bp.product_id
-            LEFT JOIN image img ON img.id = p.image_id
-            WHERE cd.cart_id = @CartId
-              AND cd.branch_product_id = @BranchProductId
-            LIMIT 1;
-            """;
+        var sql = CartItemSelectSql + "\nWHERE cd.cart_id = @CartId AND cd.branch_product_id = @BranchProductId LIMIT 1;";
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
         return await connection.QueryFirstOrDefaultAsync<CartItem>(sql, new

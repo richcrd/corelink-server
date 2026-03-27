@@ -9,22 +9,48 @@ public sealed class CheckoutService(ICheckoutRepository repository, ICartReposit
 {
     public async Task<Answer<CartValidationResponse>> ValidateCartAsync(long userId)
     {
+        var (response, _) = await ValidateAndGetItemsAsync(userId);
+        return response;
+    }
+    
+    public async Task<Answer<CheckoutResponse>> ProcessCheckoutAsync(long userId, CheckoutRequest request)
+    {
+        var (validationAnswer, items) = await ValidateAndGetItemsAsync(userId);
+        
+        if (validationAnswer.Response == null || !validationAnswer.Response.IsValid)
+            return Answer<CheckoutResponse>.BadRequest(string.Join(", ", validationAnswer.Response?.Errors ?? new List<string>()));
+
         var cart = await cartRepository.GetCartByUserId(userId);
         if (cart == null)
-            return Answer<CartValidationResponse>.BadRequest("No se encontró un carrito activo.");
+            return Answer<CheckoutResponse>.BadRequest("No se encontró un carrito activo para pagar.");
+
+        try
+        {
+            var orderId = await repository.ProcessCheckoutTransactionAsync(cart.Id, userId, validationAnswer.Response.Total, items!, request.PaymentMethodId, request.PaymentReference);
+            return Answer<CheckoutResponse>.Ok(new CheckoutResponse { OrderId = orderId }, "Orden procesada exitosamente.");
+        }
+        catch (Exception ex)
+        {
+            return Answer<CheckoutResponse>.Error($"Error interno procesando el checkout: {ex.Message}");
+        }
+    }
+
+    private async Task<(Answer<CartValidationResponse> Answer, IEnumerable<CartCheckoutItem>? Items)> ValidateAndGetItemsAsync(long userId)
+    {
+        var cart = await cartRepository.GetCartByUserId(userId);
+        if (cart == null)
+            return (Answer<CartValidationResponse>.BadRequest("No se encontró un carrito activo."), null);
             
         var status = await repository.GetCartStatusAsync(cart.Id, userId);
         if (status != "PENDING")
-            return Answer<CartValidationResponse>.BadRequest("El carrito no es válido o ya fue procesado.");
+            return (Answer<CartValidationResponse>.BadRequest("El carrito no es válido o ya fue procesado."), null);
 
         var items = await repository.GetCartItemsForCheckoutAsync(cart.Id);
         
         var response = new CartValidationResponse { IsValid = true };
         
         if (!items.Any())
-        {
-            return Answer<CartValidationResponse>.BadRequest("El carrito está vacío.");
-        }
+            return (Answer<CartValidationResponse>.BadRequest("El carrito está vacío."), null);
 
         foreach (var item in items)
         {
@@ -44,29 +70,6 @@ public sealed class CheckoutService(ICheckoutRepository repository, ICartReposit
 
         response.Total = response.Subtotal;
         
-        return Answer<CartValidationResponse>.Ok(response);
-    }
-    
-    public async Task<Answer<CheckoutResponse>> ProcessCheckoutAsync(long userId, CheckoutRequest request)
-    {
-        var cart = await cartRepository.GetCartByUserId(userId);
-        if (cart == null)
-            return Answer<CheckoutResponse>.BadRequest("No se encontró un carrito activo para pagar.");
-
-        var validationResponse = await ValidateCartAsync(userId);
-        if (validationResponse.Response == null || !validationResponse.Response.IsValid)
-            return Answer<CheckoutResponse>.BadRequest(string.Join(", ", validationResponse.Response?.Errors ?? new List<string>()));
-
-        var items = await repository.GetCartItemsForCheckoutAsync(cart.Id);
-
-        try
-        {
-            var orderId = await repository.ProcessCheckoutTransactionAsync(cart.Id, userId, validationResponse.Response.Total, items, request.PaymentMethodId, request.PaymentReference);
-            return Answer<CheckoutResponse>.Ok(new CheckoutResponse { OrderId = orderId }, "Orden procesada exitosamente.");
-        }
-        catch (Exception ex)
-        {
-            return Answer<CheckoutResponse>.Error($"Error interno procesando el checkout: {ex.Message}");
-        }
+        return (Answer<CartValidationResponse>.Ok(response), items);
     }
 }

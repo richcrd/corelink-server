@@ -12,6 +12,8 @@ public sealed class ProductListResponse
     public decimal FinalPrice { get; init; }
 
     public decimal? OfferPrice { get; init; }
+    
+    public long? TotalSold { get; init; }
 
     public bool HasDiscount => 
         OfferPrice.HasValue && OfferPrice.Value < OriginalPrice;

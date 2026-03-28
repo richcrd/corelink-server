@@ -44,9 +44,49 @@ public sealed class OrderRepository(IDbConnectionFactory connectionFactory) : IO
         sql += "\nORDER BY o.created_at DESC";
 
         await using var connection = await connectionFactory.CreateOpenConnectionAsync();
-        var orders = await connection.QueryAsync<OrderSummaryResponse>(sql, new { UserId = userId });
+        var headers = await connection.QueryAsync<OrderSummaryHeaderDto>(sql, new { UserId = userId });
         
-        return orders.AsList();
+        var orderHeaders = headers.AsList();
+        if (orderHeaders.Count == 0)
+        {
+            return [];
+        }
+
+        var orderIds = orderHeaders.Select(o => o.OrderId).ToList();
+        
+        const string itemsSql = """
+            SELECT 
+                od.order_id AS OrderId,
+                p.name AS ProductName,
+                img.url AS ImageUrl,
+                od.quantity AS Quantity,
+                od.unit_price AS UnitPrice,
+                od.subtotal AS Subtotal
+            FROM order_detail od
+            INNER JOIN branch_product bp ON bp.id = od.branch_product_id
+            INNER JOIN product p ON p.id = bp.product_id
+            LEFT JOIN image img ON img.id = p.image_id
+            WHERE od.order_id = ANY(@OrderIds)
+            ORDER BY od.id ASC
+            """;
+
+        var allItems = await connection.QueryAsync<OrderItemWithIdDto>(itemsSql, new { OrderIds = orderIds });
+        var itemsGrouped = allItems.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+        return orderHeaders.Select(h => new OrderSummaryResponse(
+            h.OrderId,
+            h.Total,
+            h.Status,
+            h.CreatedAt,
+            h.CustomerName,
+            h.Phone,
+            h.Address,
+            h.BranchName,
+            h.PaymentMethod,
+            itemsGrouped.TryGetValue(h.OrderId, out var items) 
+                ? items.Select(i => new OrderItemResponse(i.ProductName, i.ImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList() 
+                : []
+        )).ToList();
     }
 
     public async Task<OrderDetailResponse?> GetOrderDetailsAsync(long orderId, long userId)

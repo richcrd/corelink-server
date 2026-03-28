@@ -16,5 +16,5 @@ public interface IProductRepository
     Task<string?> GetMainImageUrlAsync(long productId);
     Task<(IReadOnlyList<ProductListResponse> Items, int TotalCount)> GetProductsByCategoryAndBranchAsync(long categoryId, long branchId, int page, int pageSize);
     Task<IReadOnlyList<TopProductResponse>> GetTopProductsByBranchAsync(long branchId, int limit = 5);
-    Task<IReadOnlyList<TopProductWithPriceResponse>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5);
+    Task<IReadOnlyList<ProductListResponse>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5);
 }

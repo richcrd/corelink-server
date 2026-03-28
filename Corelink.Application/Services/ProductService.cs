@@ -182,12 +182,12 @@ public class ProductService(IProductRepository repository) : IProductService
         return Answer<IReadOnlyList<TopProductResponse>>.Ok(products);
     }
 
-    public async Task<Answer<IReadOnlyList<TopProductWithPriceResponse>>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5)
+    public async Task<Answer<IReadOnlyList<ProductListResponse>>> GetTopProductsWithPriceByBranchAsync(long branchId, int limit = 5)
     {
         if (branchId <= 0)
-            return Answer<IReadOnlyList<TopProductWithPriceResponse>>.BadRequest("La sucursal es requerida.");
+            return Answer<IReadOnlyList<ProductListResponse>>.BadRequest("La sucursal es requerida.");
 
         var products = await _repository.GetTopProductsWithPriceByBranchAsync(branchId, limit);
-        return Answer<IReadOnlyList<TopProductWithPriceResponse>>.Ok(products);
+        return Answer<IReadOnlyList<ProductListResponse>>.Ok(products);
     }
 }
